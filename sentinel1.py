@@ -18,8 +18,8 @@ valInt = np.random.randint(10000, size=10000)
 
 def main ():
 
-    week = int(sys.argv[1])
-    print(week)
+    week = 1#int(sys.argv[1])
+    print('week ',week)
 
     featureNames = ['VH','VV','ratio']
     RESPONSE = ['water']
@@ -58,8 +58,8 @@ def main ():
 	    
     output = ee.Image(s1img.mean()).select(['VH','VV']).multiply(10000).toInt().clip(geom)
     output = output.set("system:time_start",start)
-    outputName = "projects/sig-ee/WWF_KAZA_LC/SNMC/sentinel1/2021_"+str(week).zfill(2) + "_"+str(week+2).zfill(2) 
-    geom =  ee.FeatureCollection("users/khunaung/Myanmar_BD_37th2015").geometry().bounds().getInfo()
+    outputName = "projects/sig-ee/WWF_KAZA_LC/sentinel1_2021_"+str(week).zfill(2) + "_"+str(week+2).zfill(2) 
+    geom =  ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/SNMC").geometry().bounds().getInfo()
     print(geom['coordinates'])
     
     task_ordered = ee.batch.Export.image.toAsset(image=output, description="sentinel1 ", assetId=outputName,region=geom['coordinates'], maxPixels=1e13,scale=10 )
@@ -176,7 +176,7 @@ def speckleFilter(image):
     weights = ee.List.repeat(ee.List.repeat(1,ksize),ksize);
 
     # ~~(ksize/2) does integer division in JavaScript
-    kernel = ee.Kernel.fixed(ksize,ksize, weights, ~~(ksize/2), ~~(ksize/2), False);
+    kernel = ee.Kernel.fixed(ksize,ksize, weights, int(ksize/2), int(ksize/2), False); # changed to python int division
 
     # Get mean and variance
     mean = nat_img.reduceNeighborhood(ee.Reducer.mean(), kernel);
