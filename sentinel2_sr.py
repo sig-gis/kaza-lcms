@@ -160,9 +160,9 @@ if __name__ == "__main__":
   
     region =  ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC").geometry().bounds()
                                 
-    outputName = "projects/sig-ee/WWF_KAZA_LC/input_stacks/" + "S2_" + str(year) + "monthlyCompositeStack_SNMC"#.zfill(2) #+ "_" + str(month+4).zfill(2)
+    outputName = "projects/sig-ee/WWF_KAZA_LC/input_stacks/" + "sentinel2_" + str(year) + "_monthlyCompositeStack_SNMC"
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi).toInt(), description="Export S2"+str(year)+"monthlyCompositeStack_SNMC", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi).toInt(), description="Export sentinel2_"+str(year)+"_monthlyCompositeStack_SNMC", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
                     
     task_ordered.start()
     print(f"export started: {outputName}")
