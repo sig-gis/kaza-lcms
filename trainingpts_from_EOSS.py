@@ -1,7 +1,6 @@
 import ee
 """
-Generate stratified random training points for each AOI
-Currently uses EOSS 2020 LC product as stratification but can adapt for making points to be interpreted in CEO
+Generate stratified random training points for each AOI from EOSS 2020 LC Product, collapsed into target typology
 """
 def sample_points(img,aoi,year):
     aoi_s = ee.String(ee.FeatureCollection(aoi).get('system:id')).split('/').get(-1)
