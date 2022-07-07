@@ -54,7 +54,7 @@ def export(e,mode):
     bucket = "testBucket"
 
     # Asset Option
-    partialPath = "projects/sig-ee/WWF_KAZA_LC/trainingpts/"
+    partialPath = "projects/sig-ee/WWF_KAZA_LC/trainingPts/"
     assetId = partialPath + description
     
     drive_task = ee.batch.Export.table.toDrive(collection=e, description=description+'-Drive', fileNamePrefix=description,
