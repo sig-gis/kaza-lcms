@@ -53,19 +53,15 @@ def RFprim(training_pts,input_stack,aoi):
     inputs = ee.Image(input_stack)
     samples = ee.FeatureCollection(training_pts)
     
-    class_value = lc_dct[ee.Feature(samples.sort('PRIM',False).first()).get('LANDCOVER').getInfo()] #get its LC numeric value, map it to LC Class
+    class_value = lc_dct[ee.Feature(samples.sort('PRIM',False).first()).get('LANDCOVER').getInfo()] #get LC numeric value for the given primitive (i.e. 'PRIM':1, 'LANDCOVER':6) then map to its class label (i.e. 6: 'Water')
     
     model = ee.Classifier.smileRandomForest(
     numberOfTrees=100, 
-    #variablesPerSplit=, #default sqrt of M total covariates 
     minLeafPopulation=1, 
     bagFraction=0.7, 
-    #maxNodes=, #defaults to no limit
     seed=51515).setOutputMode('PROBABILITY').train(features=samples, 
                                                     classProperty='PRIM', 
                                                     inputProperties=inputs.bandNames(), 
-                                                    #subsampling, 
-                                                    #subsamplingSeed
                                                     )
     
     
@@ -86,7 +82,7 @@ def primitives_to_collection(sensor,year,aoi_s):
     input_stack = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/input_stacks/{sensor}_{year}monthlyCompositeStack_{aoi_s}").clip(aoi)
     
     # initizalize training pts featColl
-    training_pts_all = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/ceoTestPts{year}")
+    training_pts_all = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/EOSS2020_derived{year}")
     training_pts = training_pts_all.filterBounds(aoi)  # only grab pts within your aoi
     training_pts_sampled = (input_stack.sampleRegions(collection=training_pts, scale=10, tileScale=4, geometries=True)
                             .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
@@ -94,17 +90,13 @@ def primitives_to_collection(sensor,year,aoi_s):
   
     # create RF Primitive images one Land cover class at a time, exporting to a Primitive collection
     labels = ee.FeatureCollection(training_pts).aggregate_array('LANDCOVER').distinct().getInfo()
-    
-    for l in labels:
-        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts_sampled)).get(l-1)) # format training pts to 1/0 prim format
-        importance,oob,output = RFprim(prim_pts,input_stack,aoi) # create output RF Primitive probability image
-        #print(rf_output.bandNames().getInfo())
-        #print('OOB Error',output.get('oobError').getInfo())
+    for l in labels: # running one LC class at a time
+        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts_sampled)).get(l)) # format training pts to 1/0 prim format
+        importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
         
-        export_img(ee.Image(output), img_coll_path, aoi_s) # export the Class Primitive image to Primitive img collection
+        export_img(ee.Image(output), img_coll_path, aoi_s)
         export_metrics(importance,oob,output) 
-        #break
-    
+        
     return
 
 
@@ -122,14 +114,14 @@ if not os.path.exists(p):
 
 # Typology
 lc_dct = {
-    1:'Grassland',
+    0:'Bare',
+    1:'Built',
     2:'Crop',
-    3:'Built',
-    4:'Bare',
-    5:'Water',
-    6:'Wetland',
-    7:'Forest',
-    8:'Shrubland'
+    3:'Forest',
+    4:'Grass',
+    5:'Shrub',
+    6:'Water',
+    7:'Wetland'
     }
 
 primitives_to_collection(sensor,year,aoi_s)
