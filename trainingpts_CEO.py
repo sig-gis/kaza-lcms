@@ -45,7 +45,7 @@ def export(e,mode):
     # ######################### #
     year = '2021' # year the training pts are to be interpreted for
 
-    description = 'ceoTestPts' + year
+    description = 'EOSS2020_derived' + year
 
     # Drive Options,
     folder = "KAZA-LC-trainingpts"
@@ -90,21 +90,46 @@ def sample(aoi,diff_per_class):
     # The categorical image to sample,
     # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
         # aggregate LC2020 sub-classes together to make training points
-        # OpenHerbaceous 31,32>>1
-        # Cropland 40>>2
-        # Built-up 50>>3
-        # BareArea 60,61>>4
-        # Water 80,81>>5
-        # Wetland 90,91,92>>6
-        # Forest/Woodland 110,120,210>>7
-        # Bushland/Shrubs 130,222,231,232>>8
+        
+        # Bare 60,61>>0
+        # Built 50>> 1
+        # Cropland 40>> 2
+        # Forest 110,120,210>> 3
+        # Grassland 31,32>> 4
+        # Shrubs 130,222,231,232>> 5
+        # Water 80,81>> 6
+        # Wetland 90,91,92>> 7
+        
+        
+    
     # lc_pal = ["#FAF9C4", "#E74029","#5E3A35", 
     #             "#5C5B5B", "#191BDE", "#19DDDE", 
     #             "#176408","#31E10E"]
     LC2020 = ee.Image("projects/sig-ee/WWF_KAZA_LC/Land_Cover_KAZA_2020_TFCA")
 
-    image=LC2020.remap([31,32,40,50,60,61,80,81,90,91,92,110,120,130,210,222,231,232],
-                                [1,1,2,3,4,4,5,5,6,6,6,7,7,8,7,8,8,8]).rename(landCover)
+    # typology is in both alphabetic and numeric order
+    image=LC2020.remap([31,32, # Grassland
+                        40, # Crop
+                        50, # Built
+                        60,61, # Bare
+                        80,81, # Water
+                        90,91,92, # Wetland
+                        110,120, # Foret
+                        130, # Shrub
+                        210, # Forest
+                        222,231,232 # Shrub
+                        ],
+                        [4,4, # Grassland
+                        2, # Crop
+                        1, # Built
+                        0,0, # Bare
+                        6,6, # Water
+                        7,7,7, # Wetland
+                        3,3, # Forest
+                        6, # Shrub
+                        3, # Forest
+                        5,5,5, # Shrub
+                        ]).rename(landCover)
 
     # ######################### #
     # Stratify by unequal number of points
@@ -125,7 +150,7 @@ def sample(aoi,diff_per_class):
     # number of pixels to sample for each class in the
     # classValues list. Must be the same size as
     # classValues.
-    classValues = [1,2,3,4,5,6,7,8]
+    classValues = [0,1,2,3,4,5,6,7]
     classPoints = [2000,2000,1000,1000,1000,1000,2000,2000]
 
     if diff_per_class:
@@ -154,9 +179,9 @@ def sample(aoi,diff_per_class):
                     'SAMPLEID',fid)
 
     #print("First sample point :",ee.Feature(stratSample.map(ceoClean).first()).getInfo())
-
+   
     e = stratSample.map(ceoClean)
-    #print("Class labels and number of samples :", e.aggregate_histogram(landCover).getInfo())
+    
     return e
 
 # Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
