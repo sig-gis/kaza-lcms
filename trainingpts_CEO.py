@@ -29,7 +29,7 @@ aoi7 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Binga")
 
 aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
 
-#%%
+
 ## GLOBAL VARS
 
 # landCover is the named field which will hold each
@@ -45,7 +45,7 @@ def export(e,mode):
     # ######################### #
     year = '2021' # year the training pts are to be interpreted for
 
-    description = 'EOSS2020_derived' + year
+    description = 'EOSS2020_derived' + year + 'testGID'
 
     # Drive Options,
     folder = "KAZA-LC-trainingpts"
@@ -100,11 +100,6 @@ def sample(aoi,diff_per_class):
         # Water 80,81>> 6
         # Wetland 90,91,92>> 7
         
-        
-    
-    # lc_pal = ["#FAF9C4", "#E74029","#5E3A35", 
-    #             "#5C5B5B", "#191BDE", "#19DDDE", 
-    #             "#176408","#31E10E"]
     LC2020 = ee.Image("projects/sig-ee/WWF_KAZA_LC/Land_Cover_KAZA_2020_TFCA")
 
     # typology is in both alphabetic and numeric order
@@ -114,11 +109,12 @@ def sample(aoi,diff_per_class):
                         60,61, # Bare
                         80,81, # Water
                         90,91,92, # Wetland
-                        110,120, # Foret
+                        110,120, # Forest
                         130, # Shrub
                         210, # Forest
                         222,231,232 # Shrub
                         ],
+                        
                         [4,4, # Grassland
                         2, # Crop
                         1, # Built
@@ -126,7 +122,7 @@ def sample(aoi,diff_per_class):
                         6,6, # Water
                         7,7,7, # Wetland
                         3,3, # Forest
-                        6, # Shrub
+                        5, # Shrub
                         3, # Forest
                         5,5,5, # Shrub
                         ]).rename(landCover)
@@ -183,16 +179,27 @@ def sample(aoi,diff_per_class):
     e = stratSample.map(ceoClean)
     
     return e
+def plot_id_global(n,feat):
+    """takes an index number (n) and adds it to current PLOTID property of a feature 
+            to ensure PLOTID values are globally unique (necessary for multiple sets of AOI sampling)"""
+    aoi_id = ee.String(str(n))
+    f = ee.Feature(feat)
+    gid = aoi_id.cat('_').cat(ee.String(f.get('PLOTID')))
+    f = f.set('PLOTID',gid, 'SAMPLEID', gid)
+    return f
 
+#%%
 # Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
 all_s = ee.FeatureCollection(sample(aoi_list[0],diff_per_class=True)) # use first aoi to start the collection for all
+counter=1
 for a in aoi_list[1:]:
     s = sample(a,diff_per_class=True)
+    aoi_id = str(counter) # make an AOI index to append to PLOTID 
+    s = s.map(lambda f: plot_id_global(aoi_id,f)) # make PLOT ID globally unique using AOI index
     all_s = ee.FeatureCollection(all_s).merge(s)
+    counter = counter+1
 
 print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
 
 export(all_s,'asset')
 
-
-# %%
