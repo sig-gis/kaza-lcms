@@ -26,7 +26,8 @@ if __name__ == "__main__":
 	
 	# bandCast = ee.Dictionary({""})
 	ee.Initialize()
-
+	
+	aoi_s = "Sichifulo"
 	year = 2021
 
 	nicfi = ee.ImageCollection('projects/planet-nicfi/assets/basemaps/africa')
@@ -37,12 +38,13 @@ if __name__ == "__main__":
 	#print(stack.bandTypes().getInfo())
 	# print(stack.bandNames().size().getInfo())
 
-	aoi = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC").geometry().buffer(5000)
-	region =  ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC").geometry().bounds()
+	aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
+	region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
 								
-	outputName = "projects/sig-ee/WWF_KAZA_LC/input_stacks/" + "planet_" + str(year) + "_monthlyCompositeStack"
-
-	task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description="Export planet_"+str(year)+"_monthlyCompositeStack", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+	outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/planet_{str(year)}_monthlyCompositeStack_{aoi_s}"
+	desc = outputName.split('/')[-1]
+	
+	task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=desc, assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
 					
 	task_ordered.start()
 	print(f"export started: {outputName}")
