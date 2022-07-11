@@ -5,6 +5,23 @@ from pathlib import Path
 import pandas as pd
 ee.Initialize()
 
+seed = 51515
+
+def export_train_test_pts(pts,aoi_s,year):
+    featColl = ee.FeatureCollection(pts)
+    featColl = featColl.randomColumn(columnName='random', seed=seed)
+    filt = ee.Filter.lt('random',0.7)
+    train = featColl.filter(filt)
+    test = featColl.filter(filt.Not())
+    print('train size', train.size().getInfo())
+    print('test size', test.size().getInfo())
+
+    train_e = ee.batch.Export.table.toAsset(train,f'exportTrainingPoints_{aoi_s}{year}',f"projects/sig-ee/WWF_KAZA_LC/trainingPts/training{aoi_s}{year}")
+    test_e = ee.batch.Export.table.toAsset(test,f'exportTestPoints_{aoi_s}{year}',f"projects/sig-ee/WWF_KAZA_LC/trainingPts/testing{aoi_s}{year}")
+    train_e.start()
+    test_e.start()
+    print(f'Train and Test Points exported for {aoi_s} {year}')
+    return train # return training points since we'll use it in the script to train the RFs
 
 def export_metrics(imp,oob,img):
     """Parse variable importance and OOB Error estimate from trained model, output to local files respectively"""
@@ -59,7 +76,7 @@ def RFprim(training_pts,input_stack,aoi):
     numberOfTrees=100, 
     minLeafPopulation=1, 
     bagFraction=0.7, 
-    seed=51515).setOutputMode('PROBABILITY').train(features=samples, 
+    seed=seed).setOutputMode('PROBABILITY').train(features=samples, 
                                                     classProperty='PRIM', 
                                                     inputProperties=inputs.bandNames(), 
                                                     )
@@ -82,16 +99,18 @@ def primitives_to_collection(sensor,year,aoi_s):
     input_stack = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/input_stacks/{sensor}_{year}monthlyCompositeStack_{aoi_s}").clip(aoi)
     
     # initizalize training pts featColl
-    training_pts_all = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/EOSS2020_derived{year}")
-    training_pts = training_pts_all.filterBounds(aoi)  # only grab pts within your aoi
-    training_pts_sampled = (input_stack.sampleRegions(collection=training_pts, scale=10, tileScale=4, geometries=True)
+    sample_pts_all = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/EOSS2020_derived{year}")
+    sample_pts = sample_pts_all.filterBounds(aoi)  # only grab pts within your aoi
+    sample_pts_w_inputs = (input_stack.sampleRegions(collection=sample_pts, scale=10, tileScale=4, geometries=True)
                             .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
     
+    training_pts = export_train_test_pts(sample_pts_w_inputs,aoi_s,year)
+
   
     # create RF Primitive images one Land cover class at a time, exporting to a Primitive collection
     labels = ee.FeatureCollection(training_pts).aggregate_array('LANDCOVER').distinct().getInfo()
     for l in labels: # running one LC class at a time
-        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts_sampled)).get(l)) # format training pts to 1/0 prim format
+        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(l)) # format training pts to 1/0 prim format
         importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
         
         export_img(ee.Image(output), img_coll_path, aoi_s)
@@ -103,7 +122,7 @@ def primitives_to_collection(sensor,year,aoi_s):
 #%%
 sensor = 'planet' # S2 or planet or combined?
 year = '2021'
-aoi_s = 'SNMC'
+aoi_s = 'Sichifulo'
 
 # intiialize local folder upon run-time to store any model output metrics
 cwd = os.getcwd()
