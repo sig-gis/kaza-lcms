@@ -13,7 +13,16 @@ aoi_s = "Mufunta"
 year = "2021"
 
 labels = [0,1,2,3,4,5,6,7]
-
+lc_dct = {
+    0:'Bare',
+    1:'Built',
+    2:'Crop',
+    3:'Forest',
+    4:'Grass',
+    5:'Shrub',
+    6:'Water',
+    7:'Wetland'
+    }
 pred_LC_img = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/output_landcover/{sensor}{aoi_s}{year}LandCover")
 
 # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
@@ -81,8 +90,9 @@ for i in labels:
     prod.append(prod_acc)
     user.append(user_acc)
 
+classes = [lc_dct[i] for i in labels]
+df_class = pd.DataFrame({'Class':classes, 'OmissionError':omit_col, 'ComissionError':comit_col, 'ProducerAcc':prod, 'UserAcc':user})    
 
-df_class = pd.DataFrame({'Class':labels, 'OmissionError':omit_col, 'ComissionError':comit_col, 'ProducerAcc':prod, 'UserAcc':user})    
 oa_content = f"Accuracy:{acc}\nPrecision:{prec}\nRecall:{reca}\nF1:{f1}"
 print(oa_content)
 
