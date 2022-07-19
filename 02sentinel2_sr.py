@@ -110,14 +110,15 @@ def rename_month_bands(img:ee.Image) :
     return ee.Image(img).rename(img.bandNames().map(edit_names))
  
 if __name__ == "__main__":
-    #def composite(aoi,year):
 
     ee.Initialize()
+    
+    aoi_s = "SNMC"
     year = 2021
 
 
 
-    aoi = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC").geometry().buffer(5000)
+    aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
 
 
     CLOUD_FILTER = 70
@@ -158,11 +159,11 @@ if __name__ == "__main__":
     stack = rename_month_bands(stack).addBands(topo)
     #print(stack.bandNames().getInfo())
   
-    region =  ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC").geometry().bounds()
+    region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
                                 
-    outputName = "projects/sig-ee/WWF_KAZA_LC/input_stacks/" + "sentinel2_" + str(year) + "_monthlyCompositeStack_SNMC"
+    outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}"
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi).toInt(), description="Export sentinel2_"+str(year)+"_monthlyCompositeStack_SNMC", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi).toInt(), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
                     
     task_ordered.start()
     print(f"export started: {outputName}")
