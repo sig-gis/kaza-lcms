@@ -8,19 +8,38 @@ ee.Initialize()
 seed = 51515
 
 def export_train_test_pts(pts,aoi_s,year):
+    """stratify 70/30 train and test points, export them, return training points in func for immediate use"""
     featColl = ee.FeatureCollection(pts)
     featColl = featColl.randomColumn(columnName='random', seed=seed)
     filt = ee.Filter.lt('random',0.7)
     train = featColl.filter(filt)
     test = featColl.filter(filt.Not())
     print('train size', train.size().getInfo())
+    print('train breakdown',train.aggregate_histogram('LANDCOVER').getInfo())
     print('test size', test.size().getInfo())
-
-    train_e = ee.batch.Export.table.toAsset(train,f'exportTrainingPoints_{aoi_s}{year}',f"projects/sig-ee/WWF_KAZA_LC/trainingPts/training{aoi_s}{year}")
-    test_e = ee.batch.Export.table.toAsset(test,f'exportTestPoints_{aoi_s}{year}',f"projects/sig-ee/WWF_KAZA_LC/trainingPts/testing{aoi_s}{year}")
-    train_e.start()
-    test_e.start()
-    print(f'Train and Test Points exported for {aoi_s} {year}')
+    print('test breakdown',test.aggregate_histogram('LANDCOVER').getInfo())
+    
+    # export if they don't already exist
+    train_pts_assets = os.popen(f"earthengine ls projects/sig-ee/WWF_KAZA_LC/trainingPts").read().split('\n')[0:-1]
+    print(train_pts_assets)
+    # train
+    train_asset = f"projects/sig-ee/WWF_KAZA_LC/trainingPts/training{aoi_s}{year}"
+    train_e = ee.batch.Export.table.toAsset(train,f'exportTrainingPoints_{aoi_s}{year}',train_asset)
+    train_asset_exists = train_asset in train_pts_assets
+    print(train_asset_exists)
+    if not train_asset_exists:
+        train_e.start()
+        print(f'Training Points exported for {aoi_s} {year}')
+    
+    # test
+    test_asset = f"projects/sig-ee/WWF_KAZA_LC/trainingPts/testing{aoi_s}{year}"
+    test_e = ee.batch.Export.table.toAsset(test,f'exportTestPoints_{aoi_s}{year}',test_asset)
+    test_asset_exists = test_asset in train_pts_assets
+    print(test_asset_exists)
+    if not test_asset_exists:
+        test_e.start()
+        print(f'Test Points exported for {aoi_s} {year}')
+    
     return train # return training points since we'll use it in the script to train the RFs
 
 def export_metrics(imp,oob,img):
@@ -96,11 +115,11 @@ def primitives_to_collection(sensor,year,aoi_s):
     
     #setup training points and input stack
     aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}")
-    input_stack = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/input_stacks/{sensor}_{year}monthlyCompositeStack_{aoi_s}").clip(aoi)
+    input_stack = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/input_stacks/{sensor}_{year}_monthlyCompositeStack_{aoi_s}").clip(aoi)
     
     # initizalize training pts featColl
     sample_pts_all = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/EOSS2020_derived{year}")
-    sample_pts = sample_pts_all.filterBounds(aoi)  # only grab pts within your aoi
+    sample_pts = sample_pts_all.filterBounds(aoi)  # only grab pts within your aoi, only can use SNMC, Mufunta and Zambezi as demos how its setup now, other AOIs don't have all 8 classes represented in their sample points
     sample_pts_w_inputs = (input_stack.sampleRegions(collection=sample_pts, scale=10, tileScale=4, geometries=True)
                             .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
     
@@ -108,9 +127,15 @@ def primitives_to_collection(sensor,year,aoi_s):
 
   
     # create RF Primitive images one Land cover class at a time, exporting to a Primitive collection
+    # total list of LANDCOVER classes is [0,1,2,3,4,5,6,7] 
     labels = ee.FeatureCollection(training_pts).aggregate_array('LANDCOVER').distinct().getInfo()
-    for l in labels: # running one LC class at a time
-        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(l)) # format training pts to 1/0 prim format
+    indices = list(range(len(labels))) # handles cases where one or more LANDCOVER classes is not present in the training pts, converting to index of the list of distinct LANDCOVER primtive FC's (prim_pts below)
+    
+    print('LANDCOVER classes: ',labels)
+    print('prim pt list indices: ',indices)
+    for i in indices: # running one LC class at a time
+        prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(i)) # format training pts to 1/0 prim format
+        print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
         importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
         
         export_img(ee.Image(output), img_coll_path, aoi_s)
@@ -122,7 +147,7 @@ def primitives_to_collection(sensor,year,aoi_s):
 #%%
 sensor = 'planet' # S2 or planet or combined?
 year = '2021'
-aoi_s = 'Sichifulo'
+aoi_s = 'Zambezi'
 
 # intiialize local folder upon run-time to store any model output metrics
 cwd = os.getcwd()
