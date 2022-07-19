@@ -10,7 +10,7 @@ def SAVI(img):
 			'(NIR - RED) * (1 + 0.5)/(NIR + RED + 0.5)', {
 			  'NIR': img.select('N'),
 			  'RED': img.select('R')
-		  }).float();
+		  }).float()
 		img = img.addBands(savi.rename(['SAVI']))
 
 		return img
@@ -24,20 +24,17 @@ def addIndices(img):
 
 if __name__ == "__main__":
 	
-	# bandCast = ee.Dictionary({""})
 	ee.Initialize()
-	
-	aoi_s = "Sichifulo"
+	# SNMC Mufunta or Zambezi
+	aoi_s = "Mufunta"
 	year = 2021
 
 	nicfi = ee.ImageCollection('projects/planet-nicfi/assets/basemaps/africa')
 	stack = nicfi.filter(ee.Filter.calendarRange(year,year,'year'))
 
-	stack = stack.map(lambda img: ee.Image(img).addBands(addIndices(img))).toBands() #spectral bands are int, indices are float
-
-	#print(stack.bandTypes().getInfo())
-	# print(stack.bandNames().size().getInfo())
-
+	stack = stack.map(lambda img: ee.Image(img).addBands(addIndices(img))).toBands() 
+	stack = idx.addTopography(stack)
+	
 	aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
 	region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
 								
