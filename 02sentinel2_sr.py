@@ -163,7 +163,7 @@ if __name__ == "__main__":
                                 
     outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}"
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi).toInt(), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 ) # removed .toInt() on img
                     
     task_ordered.start()
     print(f"export started: {outputName}")
