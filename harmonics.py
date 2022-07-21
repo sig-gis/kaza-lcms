@@ -12,7 +12,7 @@ def addHarmonicTerms(image):
     )
 
 
-def calulateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String):
+def calculateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String):
     harmonicIndependents = ee.List(["constant", "t", "cos", "sin"])
     #  Add harmonic terms as new image bands.
     harmonicLandsat = imageCollection.map(addHarmonicTerms)
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         "constant",
     ]
 
-    harmonics = calulateHarmonic(timeCollection, dependent)
+    harmonics = calculateHarmonic(timeCollection, dependent)
     # test harmonics returns correect bands
     assert (
         harmonics.bandNames().getInfo()
