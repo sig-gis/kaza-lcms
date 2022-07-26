@@ -43,9 +43,9 @@ def export(e,mode):
     # ######################### #
     #             Export Options            
     # ######################### #
-    year = '2021' # year the training pts are to be interpreted for
+    
 
-    description = 'EOSS2020_derived' + year + 'testGID'
+    description = 'EOSS2020_derived' + year #+ 'testGID'
 
     # Drive Options,
     folder = "KAZA-LC-trainingpts"
@@ -54,7 +54,7 @@ def export(e,mode):
     bucket = "testBucket"
 
     # Asset Option
-    partialPath = "projects/sig-ee/WWF_KAZA_LC/trainingPts/"
+    partialPath = f"projects/{project}/assets/training_pts/"
     assetId = partialPath + description
     
     drive_task = ee.batch.Export.table.toDrive(collection=e, description=description+'-Drive', fileNamePrefix=description,
@@ -100,7 +100,7 @@ def sample(aoi,diff_per_class):
         # Water 80,81>> 6
         # Wetland 90,91,92>> 7
         
-    LC2020 = ee.Image("projects/sig-ee/WWF_KAZA_LC/Land_Cover_KAZA_2020_TFCA")
+    LC2020 = ee.Image("projects/kaza-lc/assets/Land_Cover_KAZA_2020_TFCA")
 
     # typology is in both alphabetic and numeric order
     image=LC2020.remap([31,32, # Grassland
@@ -200,6 +200,9 @@ for a in aoi_list[1:]:
     counter = counter+1
 
 print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
+
+year = '2021' # year the training pts are to be interpreted for
+project="kaza-lc" # ee project 
 
 export(all_s,'asset')
 
