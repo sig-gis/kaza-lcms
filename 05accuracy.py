@@ -8,8 +8,9 @@ from pathlib import Path
 import pandas as pd
 
 ee.Initialize()
-sensor = "planet"
-aoi_s = "Mufunta"
+project = "kaza-lc"
+sensor = "S2"
+aoi_s = "SNMC"
 year = "2021"
 
 labels = [0,1,2,3,4,5,6,7]
@@ -23,7 +24,7 @@ lc_dct = {
     6:'Water',
     7:'Wetland'
     }
-pred_LC_img = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/output_landcover/{sensor}{aoi_s}{year}LandCover")
+pred_LC_img = ee.Image(f"projects/{project}/assets/output_landcover/{sensor}{aoi_s}{year}LandCover")
 
 # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
     # aggregate LC2020 sub-classes together to make training points
@@ -40,7 +41,7 @@ pred_LC_img = ee.Image(f"projects/sig-ee/WWF_KAZA_LC/output_landcover/{sensor}{a
 # Until we have independently interpreted LC refrence samples, the ground truth is the collapsed EOSS LC product 
 # we generated the training samples from, so the LANDCOVER property in the test points is the 'actual' for pred vs actual
 
-test_pts = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/trainingPts/testing{aoi_s}{year}") 
+test_pts = ee.FeatureCollection(f"projects/{project}/assets/training_pts/testing{aoi_s}{year}") 
 print('Total Test samples: ',test_pts.size().getInfo())
 test_w_pred = pred_LC_img.sampleRegions(collection=test_pts,scale=10, projection='EPSG:32734', tileScale=2, geometries=True)
 
