@@ -1,5 +1,6 @@
 import ee
 import covariates
+import harmonics
 idx = covariates.indices()
 
 
@@ -109,16 +110,20 @@ def rename_month_bands(img:ee.Image) :
         return ee.String("S2").cat(month_str).cat(base)
     return ee.Image(img).rename(img.bandNames().map(edit_names))
  
-if __name__ == "__main__":
 
+
+####### Percentiles, harmonics, topo covariates ##############
+
+if __name__ == "__main__":
     ee.Initialize()
-    
+
+    project = "kaza-lc"
     aoi_s = "SNMC"
     year = 2021
 
 
 
-    aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
+    aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().buffer(5000)
 
 
     CLOUD_FILTER = 70
@@ -127,43 +132,153 @@ if __name__ == "__main__":
     CLD_PRJ_DIST = 2
     BUFFER = 100
 
-    months = [1,2,3,4,5,6,7,8,9,10,11,12]
-    img_list=[]
-    for month in months:
+    START_DATE = ee.Date.fromYMD(year,1,1)
+    END_DATE = ee.Date.fromYMD(year,12,31)
+
+    s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
+
+
+    imgColl =  ee.ImageCollection(s2_sr_cld_col.map(add_cld_shdw_mask)
+                .map(apply_cld_shdw_mask)
+                .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
+                )
+    
+    percentiles = (imgColl.map(add_covariates)
+                 .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
+    )
+    
+    # add time bands
+    timeField = "system:time_start"
+    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
+    
+    # compute harmonics
+    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
+    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+    
+    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
+    
+    stack = idx.addTopography(pct_harmonics)
+    
+    print(stack.bandNames().getInfo())
+    
+    region =  ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().bounds()
+
+    outputName = f"projects/{project}/assets/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}" 
+
+    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+
+    task_ordered.start()
+    print(f"export started: {outputName}")                   
+
+
+
+###### monthly median composites ######
+# if __name__ == "__main__":
+
+#     ee.Initialize()
+    
+#     aoi_s = "SNMC"
+#     year = 2021
+
+
+
+#     aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
+
+
+#     CLOUD_FILTER = 70
+#     CLD_PRB_THRESH = 40
+#     NIR_DRK_THRESH = 0.15
+#     CLD_PRJ_DIST = 2
+#     BUFFER = 100
+
+#     months = [1,2,3,4,5,6,7,8,9,10,11,12]
+#     img_list=[]
+#     for month in months:
         
-        START_DATE = ee.Date.fromYMD(year,month,1)
-        END_DATE = ee.Date.fromYMD(year,month,30)
+#         START_DATE = ee.Date.fromYMD(year,month,1)
+#         END_DATE = ee.Date.fromYMD(year,month,30)
         
-        if month == 2:
-            END_DATE = ee.Date.fromYMD(year,month,28)
+#         if month == 2:
+#             END_DATE = ee.Date.fromYMD(year,month,28)
              
-        s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
+#         s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
 
                 
-        img =  ee.Image(s2_sr_cld_col.map(add_cld_shdw_mask)
-                    .map(apply_cld_shdw_mask).median()
-                    .toInt().select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
-                    )
-        #print(img.bandNames().size().getInfo())
-        img = add_covariates(img)
-        #print(month,img.bandNames().size().getInfo())                
+#         img =  ee.Image(s2_sr_cld_col.map(add_cld_shdw_mask)
+#                     .map(apply_cld_shdw_mask).median()
+#                     .toInt().select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
+#                     )
+#         #print(img.bandNames().size().getInfo())
+#         img = add_covariates(img)
+#         #print(month,img.bandNames().size().getInfo())                
         
-        img = ee.Image(img).set("system:time_start",ee.Date.fromYMD(year,month,1))
-        img_list.append(img)
+#         img = ee.Image(img).set("system:time_start",ee.Date.fromYMD(year,month,1))
+#         img_list.append(img)
         
       
-    stack = ee.ImageCollection.fromImages(img_list).toBands()
-    #print(stack.bandNames().getInfo())
+#     stack = ee.ImageCollection.fromImages(img_list).toBands()
+#     #print(stack.bandNames().getInfo())
     
-    topo = idx.addTopography(img).select("elevation","slope","aspect","eastness","northness")
-    stack = rename_month_bands(stack).addBands(topo)
-    #print(stack.bandNames().getInfo())
+#     topo = idx.addTopography(img).select("elevation","slope","aspect","eastness","northness")
+#     stack = rename_month_bands(stack).addBands(topo)
+#     #print(stack.bandNames().getInfo())
   
-    region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
+#     region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
                                 
-    outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}"
+#     outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}"
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 ) # removed .toInt() on img
+#     task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 ) # removed .toInt() on img
                     
-    task_ordered.start()
-    print(f"export started: {outputName}")
+#     task_ordered.start()
+#     print(f"export started: {outputName}")
+
+######### yearly percentiles ##################
+
+# if __name__ == "__main__":
+
+#     ee.Initialize()
+
+#     aoi_s = "SNMC"
+#     year = 2021
+
+
+
+#     aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
+
+
+#     CLOUD_FILTER = 70
+#     CLD_PRB_THRESH = 40
+#     NIR_DRK_THRESH = 0.15
+#     CLD_PRJ_DIST = 2
+#     BUFFER = 100
+
+#     START_DATE = ee.Date.fromYMD(year,1,1)
+#     END_DATE = ee.Date.fromYMD(year,12,31)
+
+#     s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
+
+
+#     img =  ee.Image(s2_sr_cld_col.map(add_cld_shdw_mask)
+#                 .map(apply_cld_shdw_mask)
+#                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
+#                 .map(add_covariates)
+#                 .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))#.median()
+#                 #.toInt()#.select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
+#                 )               
+
+#     img = ee.Image(img).set("system:time_start",ee.Date.fromYMD(year,1,1))
+
+#     #print(img.bandNames().getInfo())
+
+#     stack = idx.addTopography(img)#.select("elevation","slope","aspect","eastness","northness")
+
+#     #print(stack.bandNames().getInfo())
+
+#     region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
+
+#     outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}_testPercentiles" # remove suffix once in production
+
+#     task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+
+#     task_ordered.start()
+#     print(f"export started: {outputName}")
