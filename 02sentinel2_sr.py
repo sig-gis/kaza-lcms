@@ -1,10 +1,11 @@
 import ee
 import covariates
 import harmonics
+import argparse
 idx = covariates.indices()
 
 
-ee.Initialize()
+#ee.Initialize()
 
 
 def get_s2_sr_cld_col(aoi, start_date, end_date):
@@ -117,14 +118,39 @@ def rename_month_bands(img:ee.Image) :
 if __name__ == "__main__":
     ee.Initialize()
 
-    project = "kaza-lc"
-    aoi_s = "SNMC"
-    year = 2021
+    parser = argparse.ArgumentParser(
+    description="Create Input Stack for Classifier from Sentinel S2",
+    usage = "python 02sentinel2_sr.py -p kaza-lc -a Zambezi -y 2021"
+    )
 
-
-
+    parser.add_argument(
+    "-p",
+    "--project",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-a",
+    "--aoi_string",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-y",
+    "--year",
+    type=int,
+    required=True
+    )
+    
+    args = parser.parse_args()
+    
+    project=args.project#kaza-lc
+    aoi_s = args.aoi_string#"SNMC"
+    year = args.year#2021
+    
     aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().buffer(5000)
-
 
     CLOUD_FILTER = 70
     CLD_PRB_THRESH = 40

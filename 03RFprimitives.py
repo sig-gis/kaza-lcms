@@ -3,7 +3,7 @@ import ee
 import os
 from pathlib import Path
 import pandas as pd
-ee.Initialize()
+import argparse
 
 seed = 51515
 
@@ -145,30 +145,69 @@ def primitives_to_collection(sensor,year,aoi_s):
 
 
 #%%
-project = "kaza-lc" # ee project 
-sensor = 'S2' # S2 or planet or combined?
-year = '2021'
-aoi_s = 'SNMC'
 
-# intiialize local folder upon run-time to store any model output metrics
-cwd = os.getcwd()
-p = os.path.join(cwd,f"metrics_{sensor}_{year}_{aoi_s}")
-if not os.path.exists(p):
-    Path(p).mkdir(parents=True)
+if __name__=="__main__":
+    ee.Initialize()
+
+    parser = argparse.ArgumentParser(
+    description="Create land cover binary primitives for all classes in typology",
+    usage = "python 03RFprimitives.py -p kaza-lc -a Zambezi -y 2021 -s S2"
+    )
+    
+    parser.add_argument(
+    "-p",
+    "--project",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-a",
+    "--aoi_string",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-y",
+    "--year",
+    type=int,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-s",
+    "--sensor",
+    type=str,
+    required=True
+    )
+    
+    args = parser.parse_args()
+
+    sensor=args.sensor #S2 or planet
+    year = args.year #2021
+    aoi_s = args.aoi_string #SNMC
+    project=args.project #kaza-lc
+
+    # intiialize local folder upon run-time to store any model output metrics
+    cwd = os.getcwd()
+    p = os.path.join(cwd,f"metrics_{sensor}_{year}_{aoi_s}")
+    if not os.path.exists(p):
+        Path(p).mkdir(parents=True)
 
 
-# Typology
-lc_dct = {
-    0:'Bare',
-    1:'Built',
-    2:'Crop',
-    3:'Forest',
-    4:'Grass',
-    5:'Shrub',
-    6:'Water',
-    7:'Wetland'
-    }
+    # Typology
+    lc_dct = {
+        0:'Bare',
+        1:'Built',
+        2:'Crop',
+        3:'Forest',
+        4:'Grass',
+        5:'Shrub',
+        6:'Water',
+        7:'Wetland'
+        }
 
-primitives_to_collection(sensor,year,aoi_s)
+    primitives_to_collection(sensor,year,aoi_s)
 
 

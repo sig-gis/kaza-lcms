@@ -1,4 +1,5 @@
 import ee
+import argparse
 
 # Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
 
@@ -48,10 +49,47 @@ def export_img(img,sensor,aoi_s,year):
 
 if __name__ == "__main__":
     ee.Initialize()
-    project = "kaza-lc"
-    sensor = "S2"
-    aoi_s = "SNMC"
-    year = "2021"
+    
+    parser = argparse.ArgumentParser(
+    description="Generate single land cover image from land cover primitives image collection",
+    usage = "python 04generate_LC.py -p kaza-lc -a Zambezi -y 2021 -s S2 "
+    )
+
+    
+    parser.add_argument(
+    "-p",
+    "--project",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-a",
+    "--aoi_string",
+    type=str,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-y",
+    "--year",
+    type=int,
+    required=True
+    )
+    
+    parser.add_argument(
+    "-s",
+    "--sensor",
+    type=str,
+    required=True
+    )
+    
+    args = parser.parse_args()
+
+    project=args.project #kaza-lc
+    aoi_s = args.aoi_string #SNMC
+    year = args.year #2021
+    sensor=args.sensor #S2
 
     prims = ee.ImageCollection(f"projects/{project}/assets/output_landcover/{sensor}{aoi_s}{year}Primitives")
     max = maxProbClassifyFromImageCollection(prims)
