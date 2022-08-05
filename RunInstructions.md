@@ -17,7 +17,7 @@
 
 ## The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
 ### 1) Generate and interpret land cover reference samples for training and testing data using Collect Earth Online (01sample_pts.py)
-### 2) Generate input data stack from chosen sensor used by the model (02sentinel2_sr.py ** currently only using Sentinel data)
+### 2) Generate input data stack from chosen sensor used by the model (02sentinel2_sr.py **currently only using Sentinel data)
 ### 3) Create land cover primitives (03RFprimitives.py)
 ### 4) Construct categorical land cover map from the set of land cover primitives (04generate_LC.py)
 ### 5) Conduct accuracy assessment (05accuracy.py)
@@ -25,13 +25,13 @@
 #
 # Scripts
 
-## Each script will be run on the command-line and take a few user-provided arguments. The output Earth Engine asset from a given script must complete before the next script is run.
+## Each script will be run on the command-line. The user must provide values for each command-line argument to control the year and AOI to run the analysis for, and which sensor to use. The output Earth Engine asset from a given script must complete before the next script is run.
 
-## Here is a list of arguments the scripts will require:
-* project - name of your cloud project
-* aoi_s - the aoi to run the analysis for
-* year - year to run the analysis for
-* sensor - one of "S2" or "planet", determines which sensor the input data is compiled from
+## Here is a list of possible arguments a script will require:
+* -p --project - name of your cloud project
+* -a --aoi_s  - the AOI to run the analysis for
+* -y --year  - year to run the analysis for
+* -s --sensor  - one of "S2" or "planet", determines which sensor the input data is compiled from
 
 ## You can use the `-h` flag to retrieve the script's usage example.
 
