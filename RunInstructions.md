@@ -28,14 +28,14 @@
 ## Each script will be run on the command-line and take a few user-provided arguments. The output Earth Engine asset from a given script must complete before the next script is run.
 
 ## Here is a list of arguments the scripts will require:
-* project - name of cloud project to operate from and export to (i.e. SNMC)
-* aoi_s - the unique aoi string identifier for the region (e.g. SNMC)
-* year - year that you are running the land cover model for
+* project - name of your cloud project
+* aoi_s - the aoi to run the analysis for
+* year - year to run the analysis for
 * sensor - one of "S2" or "planet", determines which sensor the input data is compiled from
 
 ## You can use the `-h` flag to retrieve the script's usage example.
 
-![kaza_readme_cmdline](https://user-images.githubusercontent.com/51868526/183121578-5ed97acd-af15-4d17-94d6-00fd00487427.JPG)
+![kaza_readme_cmdline](https://user-images.githubusercontent.com/51868526/183131644-4568f7b1-a58d-4a94-a66a-0e8def39f280.JPG)
 
 ## If the script reports that an Export task has been started, go to the Code Editor to check on its progress.
 
