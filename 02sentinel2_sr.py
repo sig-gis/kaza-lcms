@@ -185,7 +185,7 @@ if __name__ == "__main__":
     
     stack = idx.addTopography(pct_harmonics)
     
-    print(stack.bandNames().getInfo())
+    #print(stack.bandNames().getInfo())
     
     region =  ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().bounds()
 
