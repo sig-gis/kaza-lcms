@@ -8,8 +8,8 @@
 # Asset Management
 ### We will organize our Earth Engine assets (files) in an EE cloud project. We have AOIs, input stacks, output land cover product, and reference samples. You must follow the folder strucure and naming scheme exactly as shown here for the code to be able to find the needed files. 
 
-![kaza_folder_structure](screenshot picture)
-#
+#![kaza_readme_folderOrg](https://user-images.githubusercontent.com/51868526/183120715-58a6c92d-79fe-4345-9e26-c821978fa485.JPG)
+
 # Workflow
 
 ## The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
