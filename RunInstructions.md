@@ -11,7 +11,7 @@
 # Asset Management
 ### We will organize our Earth Engine assets (files) in an EE cloud project. We have AOIs, input stacks, output land cover product, and reference samples. We will have this basic structure setup already.
 
-#![kaza_readme_folderOrg](https://user-images.githubusercontent.com/51868526/183120715-58a6c92d-79fe-4345-9e26-c821978fa485.JPG)
+![kaza_readme_folderOrg](https://user-images.githubusercontent.com/51868526/183120715-58a6c92d-79fe-4345-9e26-c821978fa485.JPG)
 
 # Workflow
 
