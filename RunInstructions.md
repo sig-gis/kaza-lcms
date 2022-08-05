@@ -2,7 +2,10 @@
 
 # Python Environment setup
 
-### The only required python packages that do not ship with a python install is `earthengine-api`. Install this package with pip (`pip install earthengine-api`) or conda (`conda install -c conda-forge earthengine-api` ).
+### The only required python packages that do not ship with a python install is `earthengine-api` and `scikit-learn`. Use your preferred python environment manager to install each:
+[earthengine-api](https://developers.google.com/earth-engine/guides/python_install)
+
+[scikit-learn](https://scikit-learn.org/stable/install.html)
 
 #
 # Asset Management
@@ -30,6 +33,11 @@
 * year - year that you are running the land cover model for
 * sensor - one of "S2" or "planet", determines which sensor the input data is compiled from
 
-## Some scripts will require all of these, while others will require only a subset. To determine which arguments the 02Sentinel2_sr.py script requires, for instance, in your command-line shell type `python 02sentinel2_sr.py -h` declaring the help flag. This will bring up the usage example and the arguments the script requires.
+## You can use the `-h` flag to retrieve the script's usage example.
 
 ![kaza_readme_cmdline](https://user-images.githubusercontent.com/51868526/183121578-5ed97acd-af15-4d17-94d6-00fd00487427.JPG)
+
+## If the script reports that an Export task has been started, go to the Code Editor to check on its progress.
+
+![kaza_readme_exportRunning](https://user-images.githubusercontent.com/51868526/183131558-c0433f1b-ad3d-49b8-9d4d-9533a16cd216.JPG)
+
