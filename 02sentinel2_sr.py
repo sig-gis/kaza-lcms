@@ -1,6 +1,6 @@
 import ee
-import covariates
-import harmonics
+from utils import covariates
+from utils import harmonics
 import argparse
 idx = covariates.indices()
 
