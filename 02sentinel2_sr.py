@@ -189,9 +189,9 @@ if __name__ == "__main__":
     
     region =  ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().bounds()
 
-    outputName = f"projects/{project}/assets/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}" 
+    outputName = f"projects/{project}/assets/kaza-lc/input_stacks/S2_{str(year)}_stack_{aoi_s}" 
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_stack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
 
     task_ordered.start()
     print(f"export started: {outputName}")                   

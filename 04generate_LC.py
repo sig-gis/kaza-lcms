@@ -31,9 +31,9 @@ def maxProbClassifyFromImageCollection(imagecollection):
 def export_img(img,sensor,aoi_s,year):
     """Export image to Primitives imageCollection"""
     
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}")
-    imgcoll_p = f"projects/{project}/assets/output_landcover"
-    desc = f"{sensor}{aoi_s}{year}LandCover"
+    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}")
+    imgcoll_p = f"projects/{project}/assets/kaza-lc/output_landcover"
+    desc = f"{sensor}_{year}_LandCover_{aoi_s}"
     
     task = ee.batch.Export.image.toAsset(
         image=ee.Image(img),
@@ -45,7 +45,7 @@ def export_img(img,sensor,aoi_s,year):
         maxPixels=1e13)
 
     task.start()
-    print(f"Export Started for {desc}")
+    print(f"Export Started for {imgcoll_p}/{desc}")
 
 if __name__ == "__main__":
     ee.Initialize()
@@ -91,6 +91,6 @@ if __name__ == "__main__":
     year = args.year #2021
     sensor=args.sensor #S2
 
-    prims = ee.ImageCollection(f"projects/{project}/assets/output_landcover/{sensor}{aoi_s}{year}Primitives")
+    prims = ee.ImageCollection(f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_Primitives_{aoi_s}")
     max = maxProbClassifyFromImageCollection(prims)
     export_img(max,sensor,aoi_s,year)

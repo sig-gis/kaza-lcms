@@ -19,13 +19,13 @@ ee.Initialize()
 # has 1 sample in the proper format for use in CEO
 # ######################### #
 # Paramters
-aoi = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Hwange")
-aoi2 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Mufunta")
-aoi3 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Mulobesi")
-aoi4 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/SNMC")
-aoi5 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Sichifulo")
-aoi6 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Zambezi")
-aoi7 = ee.FeatureCollection("projects/sig-ee/WWF_KAZA_LC/aoi/Binga")
+aoi = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Hwange")
+aoi2 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mufunta")
+aoi3 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mulobesi")
+aoi4 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/SNMC")
+aoi5 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Sichifulo")
+aoi6 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Zambezi")
+aoi7 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Binga")
 
 aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
 
@@ -54,7 +54,7 @@ def export(e,mode):
     bucket = "testBucket"
 
     # Asset Option
-    partialPath = f"projects/{project}/assets/training_pts/"
+    partialPath = f"projects/{project}/assets/kaza-lc/sample_pts/"
     assetId = partialPath + description
     
     drive_task = ee.batch.Export.table.toDrive(collection=e, description=description+'-Drive', fileNamePrefix=description,
@@ -100,7 +100,7 @@ def sample(aoi,diff_per_class):
         # Water 80,81>> 6
         # Wetland 90,91,92>> 7
         
-    LC2020 = ee.Image("projects/kaza-lc/assets/Land_Cover_KAZA_2020_TFCA")
+    LC2020 = ee.Image("projects/wwf-sig/assets/kaza-lc/Land_Cover_KAZA_2020_TFCA")
 
     # typology is in both alphabetic and numeric order
     image=LC2020.remap([31,32, # Grassland
@@ -202,7 +202,7 @@ for a in aoi_list[1:]:
 print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
 
 year = '2021' # year the training pts are to be interpreted for
-project="kaza-lc" # ee project 
+project="wwf-sig" # ee project 
 
 export(all_s,'asset')
 

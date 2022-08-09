@@ -20,10 +20,10 @@ def export_train_test_pts(pts,aoi_s,year):
     print('test breakdown',test.aggregate_histogram('LANDCOVER').getInfo())
     
     # export if they don't already exist
-    train_pts_assets = os.popen(f"earthengine ls projects/{project}/assets/training_pts").read().split('\n')[0:-1]
+    train_pts_assets = os.popen(f"earthengine ls projects/{project}/assets/kaza-lc/sample_pts").read().split('\n')[0:-1]
     print(train_pts_assets)
     # train
-    train_asset = f"projects/{project}/assets/training_pts/training{aoi_s}{year}"
+    train_asset = f"projects/{project}/assets/kaza-lc/sample_pts/training{aoi_s}{year}"
     train_e = ee.batch.Export.table.toAsset(train,f'exportTrainingPoints_{aoi_s}{year}',train_asset)
     train_asset_exists = train_asset in train_pts_assets
     print(train_asset_exists)
@@ -32,7 +32,7 @@ def export_train_test_pts(pts,aoi_s,year):
         print(f'Training Points exported for {aoi_s} {year}')
     
     # test
-    test_asset = f"projects/{project}/assets/training_pts/testing{aoi_s}{year}"
+    test_asset = f"projects/{project}/assets/kaza-lc/sample_pts/testing{aoi_s}{year}"
     test_e = ee.batch.Export.table.toAsset(test,f'exportTestPoints_{aoi_s}{year}',test_asset)
     test_asset_exists = test_asset in train_pts_assets
     print(test_asset_exists)
@@ -58,7 +58,7 @@ def export_metrics(imp,oob,img):
 
 def export_img(img,imgcoll_p,aoi_s):
     """Export image to Primitives imageCollection"""
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}")
+    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}")
     desc = ee.Image(img).getString('Class').getInfo()
     task = ee.batch.Export.image.toAsset(
         image=ee.Image(img),
@@ -110,15 +110,15 @@ def RFprim(training_pts,input_stack,aoi):
 def primitives_to_collection(sensor,year,aoi_s):
     """ export each RF primitive image into a collection"""
     # create new collection 
-    img_coll_path = f"projects/{project}/assets/output_landcover/{sensor}{aoi_s}{year}Primitives"
+    img_coll_path = f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_Primitives_{aoi_s}"
     os.popen(f"earthengine create collection {img_coll_path}").read()
     
     #setup training points and input stack
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}")
-    input_stack = ee.Image(f"projects/{project}/assets/input_stacks/{sensor}_{year}_monthlyCompositeStack_{aoi_s}").clip(aoi)
+    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}")
+    input_stack = ee.Image(f"projects/{project}/assets/kaza-lc/input_stacks/{sensor}_{year}_stack_{aoi_s}").clip(aoi)
     
     # initizalize training pts featColl
-    sample_pts_all = ee.FeatureCollection(f"projects/{project}/assets/training_pts/EOSS2020_derived{year}")
+    sample_pts_all = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/sample_pts/EOSS2020_derived{year}")
     sample_pts = sample_pts_all.filterBounds(aoi)  # only grab pts within your aoi, only can use SNMC, Mufunta and Zambezi as demos how its setup now, other AOIs don't have all 8 classes represented in their sample points
     sample_pts_w_inputs = (input_stack.sampleRegions(collection=sample_pts, scale=10, tileScale=4, geometries=True)
                             .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
@@ -135,7 +135,7 @@ def primitives_to_collection(sensor,year,aoi_s):
     #print('prim pt list indices: ',indices)
     for i in indices: # running one LC class at a time
         prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(i)) # format training pts to 1/0 prim format
-        print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
+        # print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
         importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
         
         export_img(ee.Image(output), img_coll_path, aoi_s)
