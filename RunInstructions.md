@@ -1,8 +1,26 @@
 # Running KAZA Regional Land Cover Monitoring System
 
-# Python Environment setup
+# Python Environment Setup
+### 1. Install Anaconda 
+* Go to the Anaconda distribution [page](https://www.anaconda.com/products/distribution), scroll to the bottom and find the Anaconda installer file for your Operating System. 
+* Run the installer .exe and follow all recommendations in the installer. This [installation docs page](https://docs.anaconda.com/anaconda/install/) provides step-by-step guidance depending on your OS and use-case.
+* When Anaconda asks you if you'd like for it to initialize, click Yes.
+### 2. Test your Anaconda Installation
+* Open your command-prompt/shell/terminal and type `conda list`. You should see something like this
 
-### The only required python packages that do not ship with a python install is `earthengine-api` and `scikit-learn`. Use your preferred python environment manager to install each:
+### 3. Create a virtual environment
+* In your shell, paste and run this code block:
+```
+conda install -c conda-forge earthengine-api
+conda install -c conda-forge scikit-learn
+```
+# Earth Engine Setup
+
+
+
+
+
+
 [earthengine-api](https://developers.google.com/earth-engine/guides/python_install)
 
 [scikit-learn](https://scikit-learn.org/stable/install.html)
