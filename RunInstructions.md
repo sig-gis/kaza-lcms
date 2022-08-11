@@ -10,7 +10,7 @@
 
 ![kaza_readme_condalist](https://user-images.githubusercontent.com/51868526/184011797-51781e24-396c-42a8-8ee8-d516e92fbb64.JPG)
 
-* Scroll the list of installed packages that came shipped with anaconda (notice we're in the `base` environment by default, as indicated by the command-line). We almost have every package we need already.
+* notice we're in the `base` environment by default, as indicated by the command-line. We want to operate from a custom python environment.
 ### 3. Create a custom virtual environment
 Keep your shell open and paste each one of these commands.
 * Create a new conda env named 'gee'
@@ -28,14 +28,17 @@ conda install -c conda-forge scikit-learn
 ```
 # Earth Engine Setup
 
+# Clone the kaza-lc Repository with Git
+* Download the Git installer for your OS from the Git downloads [page](https://git-scm.com/downloads)
+* Run the installer following all recommended settings
+* Open your command prompt/shell/terminal and type 
+```
+git --version
+```
+* It should return your installed git version
+* Finally, clone the kaza repository to a local folder
 
 
-
-
-
-[earthengine-api](https://developers.google.com/earth-engine/guides/python_install)
-
-[scikit-learn](https://scikit-learn.org/stable/install.html)
 
 #
 # Asset Management
