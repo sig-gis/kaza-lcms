@@ -65,8 +65,12 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 ![kaza_readme_gcloudInstaller_InitializingSignIn](https://user-images.githubusercontent.com/51868526/184163514-4604ac83-cdad-4dd8-bc67-c37224d6aafc.JPG)
 
 * You will be redirected to a page that says "You are now authenticated with the gcloud CLI!"
-* Go back to your shell, and ensure you are in your custom conda environemnt (`conda activate env-name`)
-* Run:
+* Go back to your shell that had been opened for you by gcloud. It asks you to choose a cloud project and lists all available cloud projects that your google account has access to. Look for `wwf-sig` and then type the number it is listed as to set your project. 
+
+![kaza_readme_gcloudInstaller_chooseCloudProject_chooseWWF-SIG](https://user-images.githubusercontent.com/51868526/184165192-c602f058-b485-419c-b5ea-401c7087fb9f.JPG)
+
+## Authenticate to Earth Engine
+* Back in your separate shell window, first ensure you are in your custom conda env (`conda activate env-name`) and run:
 ```
 earthengine authenticate
 ```
