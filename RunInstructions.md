@@ -26,7 +26,6 @@ conda activate gee
 conda install -c conda-forge earthengine-api
 conda install -c conda-forge scikit-learn
 ```
-# Earth Engine Setup
 
 # Clone the kaza-lc Repository with Git
 * Download the Git installer for your OS from the Git downloads [page](https://git-scm.com/downloads)
@@ -35,10 +34,44 @@ conda install -c conda-forge scikit-learn
 ```
 git --version
 ```
-* It should return your installed git version
-* Finally, clone the kaza repository to a local folder
 
+![kaza_gitVersion](https://user-images.githubusercontent.com/51868526/184142833-ae1dac16-6196-4aaf-a130-28e0e6707825.JPG)
 
+* Clone the kaza repository to a local folder 
+
+```
+git clone https://github.com/kyle-woodward/kaza-lc.git
+```
+
+![kaza_redme_gitClone](https://user-images.githubusercontent.com/51868526/184143024-31f4e6e0-0963-44bb-a72d-5b2778de5446.JPG)
+
+* `cd` into your new kaza-lc folder and `ls`(linux/MacOS) or `dir`(Windows) to see its contents
+
+![kaza_readme_cdToKazalc](https://user-images.githubusercontent.com/51868526/184143297-bbcd50ee-20eb-4466-b438-2855b01e6585.JPG)
+
+# Earth Engine Setup
+## Setup `gcloud` utility
+* Download the installer for the `glcoud` command-line python [utility](https://cloud.google.com/sdk/docs/install) from Google
+* Run the installer
+* Select Single User and use the default Destination Folder
+* Leave the Selected Components to Install as-is and click Install
+* Leave all four boxes checked, and click Finish. This will open a new command-prompt window and auto run gcloud initialization
+* It asks whether yo'd like to log in, type y - this will open a new browser window to a Google Authentication page
+
+![kaza_readme_gcloudInstaller_initializing](https://user-images.githubusercontent.com/51868526/184163126-7505745b-f7c3-4745-bb36-3948d1b9ff76.JPG)
+
+* Choose your Google account that is linked to your Earth Engine account, then click Allow on the next page.
+
+![kaza_readme_gcloudInstaller_InitializingSignIn](https://user-images.githubusercontent.com/51868526/184163514-4604ac83-cdad-4dd8-bc67-c37224d6aafc.JPG)
+
+* You will be redirected to a page that says "You are now authenticated with the gcloud CLI!"
+* Go back to your shell, and ensure you are in your custom conda environemnt (`conda activate env-name`)
+* Run:
+```
+earthengine authenticate
+```
+* If you are running this from your local computer (not a virtual machine), it should automatically open a new tab in your browser to a Google Authentication page
+* 
 
 #
 # Asset Management
@@ -46,7 +79,7 @@ git --version
 
 ![kaza_readme_folderOrg](https://user-images.githubusercontent.com/51868526/183120715-58a6c92d-79fe-4345-9e26-c821978fa485.JPG)
 
-# Workflow
+# KAZA LC Workflow
 
 ## The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
 ### 1) Generate and interpret land cover reference samples for training and testing data using Collect Earth Online (01sample_pts.py)
