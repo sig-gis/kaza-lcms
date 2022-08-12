@@ -23,9 +23,9 @@ conda activate gee
 ```
 * In your shell, run this code block:
 ```
-conda install -c conda-forge earthengine-api
-conda install -c conda-forge scikit-learn
+conda install -c conda-forge earthengine-api scikit-learn pandas
 ```
+* Wait for package solver to finish and type y to proceed with installation.
 
 ## Git Setup
 ### 1. Download the Git installer for your OS from the Git downloads [page](https://git-scm.com/downloads). Run the installer following all recommended settings
