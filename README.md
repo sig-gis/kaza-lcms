@@ -49,7 +49,20 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 ![kaza_readme_cdToKazalc](https://user-images.githubusercontent.com/51868526/184143297-bbcd50ee-20eb-4466-b438-2855b01e6585.JPG)
 
 ## Earth Engine Setup
-### Setup `gcloud` utility
+## Option 1 - Authenticate without installing `gcloud` utility
+### 1. In your shell, run:
+```
+earthengine authenticate --auth_mode notebook
+```
+### 2. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page. On the next page, select your Google account again, then click Allow on the next page.
+
+![kaza_readme_notebookauthenticator](https://user-images.githubusercontent.com/51868526/184396026-be2dc257-eeb5-442c-9e76-e06cb0445db0.JPG)
+
+### 3. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter.
+
+![kaza_readme_commandline_pasteAuthToken](https://user-images.githubusercontent.com/51868526/184396045-e8c81cfd-5b55-4567-8d52-5abe4fcbf4f5.JPG)
+
+### Option 2 - Authenticate with `gcloud` utility
 ### 1. Download the installer for the `glcoud` command-line python [utility](https://cloud.google.com/sdk/docs/install) from Google
 ### 2. Run the installer
 ### 3. Select Single User and use the default Destination Folder
@@ -73,7 +86,7 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 ```
 earthengine authenticate
 ```
-### 2. If you are running this from your local computer (not a virtual machine), it should automatically open a new tab in your browser to a Google Authentication page
+### 2. If you are running this from your local computer (not a virtual machine), it should automatically open a new tab in your browser to a Google Authentication page 
  
 # Project Workflow
 ### The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
