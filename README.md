@@ -63,7 +63,7 @@ earthengine authenticate --auth_mode notebook
 
 ![kaza_readme_commandline_pasteAuthToken](https://user-images.githubusercontent.com/51868526/184396045-e8c81cfd-5b55-4567-8d52-5abe4fcbf4f5.JPG)
 
-### Option 2 - Authenticate with `gcloud` utility
+## Option 2 - Authenticate with `gcloud` utility
 ### 1. Download the installer for the `glcoud` command-line python [utility](https://cloud.google.com/sdk/docs/install) from Google
 ### 2. Run the installer
 ### 3. Select Single User and use the default Destination Folder
@@ -89,6 +89,17 @@ earthengine authenticate
 ### 11. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page.
 ### 12. On the next page, select your Google account again, then click Allow on the next page.
 ### 13. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter. 
+
+# Testing Your Setup
+* Test that earthengine is setup and authenticated by checking the folder contents within the `wwf-sig` cloud project. 
+* In your shell, run:
+```
+earthengine ls projects/wwf-sig/assets/kaza-lc
+```
+
+![kaza_earthenginels](https://user-images.githubusercontent.com/51868526/184402268-5876a8eb-7e1d-4d1f-aef6-658c6e20fe8c.JPG)
+
+* If you do not get an error and it returns a list of folders and assets similar to this then you are good to go! :tada:
 
 # Project Workflow
 ### The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
