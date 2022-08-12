@@ -138,7 +138,7 @@ if __name__=="__main__":
     df_class = pd.DataFrame({'Class':classes, 'OmissionError':omit_col, 'ComissionError':comit_col, 'ProducerAcc':prod, 'UserAcc':user})    
 
     oa_content = f"Accuracy:{acc}\nPrecision:{prec}\nRecall:{reca}\nF1:{f1}"
-    print(oa_content)
+    # print(oa_content)
 
     cwd = os.getcwd()
     output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
@@ -149,5 +149,5 @@ if __name__=="__main__":
     with open(f"{output_path}/overallAccuracy.txt",'w') as f:
         f.write(oa_content)
    
-
+    print(f"Overall and Class Accuracy reports exported to: {output_path}")
 # %%
