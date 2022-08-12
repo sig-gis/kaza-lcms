@@ -50,7 +50,7 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 
 ## Earth Engine Setup
 ## Option 1 - Authenticate without installing `gcloud` utility
-### 1. In your shell, run:
+### 1. In your shell, first ensure you are in your custom conda env (running `conda activate env-name`), then run:
 ```
 earthengine authenticate --auth_mode notebook
 ```
@@ -82,13 +82,14 @@ earthengine authenticate --auth_mode notebook
 
 ![kaza_readme_gcloudInstaller_chooseCloudProject_chooseWWF-SIG](https://user-images.githubusercontent.com/51868526/184165192-c602f058-b485-419c-b5ea-401c7087fb9f.JPG)
 
-### Authenticate to Earth Engine
-### 1. Back in your separate shell window, first ensure you are in your custom conda env (`conda activate env-name`) and run:
+### 10. Back in your separate shell window, first ensure you are in your custom conda env (running `conda activate env-name`), then run:
 ```
 earthengine authenticate
 ```
-### 2. If you are running this from your local computer (not a virtual machine), it should automatically open a new tab in your browser to a Google Authentication page 
- 
+### 11. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page.
+### 12. On the next page, select your Google account again, then click Allow on the next page.
+### 13. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter. 
+
 # Project Workflow
 ### The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
 1. Generate and interpret land cover reference samples for training and testing data using Collect Earth Online (01sample_pts.py)
