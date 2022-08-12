@@ -54,11 +54,12 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 ```
 earthengine authenticate --auth_mode notebook
 ```
-### 2. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page. On the next page, select your Google account again, then click Allow on the next page.
+### 2. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page.
 
 ![kaza_readme_notebookauthenticator](https://user-images.githubusercontent.com/51868526/184396026-be2dc257-eeb5-442c-9e76-e06cb0445db0.JPG)
 
-### 3. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter.
+### 3. On the next page, select your Google account again, then click Allow on the next page.
+### 4. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter.
 
 ![kaza_readme_commandline_pasteAuthToken](https://user-images.githubusercontent.com/51868526/184396045-e8c81cfd-5b55-4567-8d52-5abe4fcbf4f5.JPG)
 
