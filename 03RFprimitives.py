@@ -21,25 +21,27 @@ def export_train_test_pts(pts,aoi_s,year):
     
     # export if they don't already exist
     train_pts_assets = os.popen(f"earthengine ls projects/{project}/assets/kaza-lc/sample_pts").read().split('\n')[0:-1]
-    print(train_pts_assets)
+    # print(train_pts_assets)
     # train
     train_asset = f"projects/{project}/assets/kaza-lc/sample_pts/training{aoi_s}{year}"
     train_e = ee.batch.Export.table.toAsset(train,f'exportTrainingPoints_{aoi_s}{year}',train_asset)
     train_asset_exists = train_asset in train_pts_assets
-    print(train_asset_exists)
+    # print(train_asset_exists)
     if not train_asset_exists:
         train_e.start()
         print(f'Training Points exported for {aoi_s} {year}')
-    
+    else:
+        print(f"{train_asset} already exists, will not export")
     # test
     test_asset = f"projects/{project}/assets/kaza-lc/sample_pts/testing{aoi_s}{year}"
     test_e = ee.batch.Export.table.toAsset(test,f'exportTestPoints_{aoi_s}{year}',test_asset)
     test_asset_exists = test_asset in train_pts_assets
-    print(test_asset_exists)
+    # print(test_asset_exists)
     if not test_asset_exists:
         test_e.start()
         print(f'Test Points exported for {aoi_s} {year}')
-    
+    else:
+        print(f"{test_asset} already exists, will not export")
     return train # return training points since we'll use it in the script to train the RFs
 
 def export_metrics(imp,oob,img):
