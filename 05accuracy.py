@@ -2,12 +2,12 @@
 # Asses Overall, Producer's, User's Accuracies using testing points,
 # maybe also export a confusion matrix heatplot 
 import ee
-from sklearn import metrics
+from sklearn.metrics import multilabel_confusion_matrix, confusion_matrix, ConfusionMatrixDisplay, accuracy_score, precision_score, f1_score, recall_score
 import os
 from pathlib import Path
 import pandas as pd
 import argparse
-
+import matplotlib.pyplot as plt
 if __name__=="__main__":
     ee.Initialize()
     
@@ -52,10 +52,8 @@ if __name__=="__main__":
     aoi_s = args.aoi_string #SNMC
     year = args.year #2021
     sensor=args.sensor #S2
-    
-    
-    
 
+#%%
     labels = [0,1,2,3,4,5,6,7]
     lc_dct = {
         0:'Bare',
@@ -95,18 +93,18 @@ if __name__=="__main__":
     # print('samples per class in ground truth',test_pts.aggregate_histogram('LANDCOVER').getInfo())
 
     # overall acc,prec,recall,f1
-    acc = round(metrics.accuracy_score(true,pred),3)
-    prec = round(metrics.precision_score(true,pred,average="weighted"),3)
-    reca = round(metrics.recall_score(true,pred,average="weighted"),3)
-    f1 = round(metrics.f1_score(true,pred,average="weighted"),3)
+    acc = round(accuracy_score(true,pred),3)
+    prec = round(precision_score(true,pred,average="weighted"),3)
+    reca = round(recall_score(true,pred,average="weighted"),3)
+    f1 = round(f1_score(true,pred,average="weighted"),3)
     # print('Overall Metrics')
     # print(f'Accuracy: {acc}')
     # print(f'Precision: {prec}')
     # print(f'Recall: {reca}')
     # print(f'F1: {f1}')
 
-    # to get class-wise accuracies, must construct a confusion matrix 
-    mcm = metrics.multilabel_confusion_matrix(true, pred, sample_weight=None, labels=[0,1,2,3,4,5,6,7], samplewise=False)
+    # to get class-wise accuracies, must construct a multi-label confusion matrix, outputs true/false positives/negatives per label
+    mcm = multilabel_confusion_matrix(true, pred, sample_weight=None, labels=[0,1,2,3,4,5,6,7], samplewise=False)
     # Returns list of 2x2 arrays of length labels 
     # true negatives == arr[0][0]
     # false negatives == arr[1][0]
@@ -138,16 +136,33 @@ if __name__=="__main__":
     df_class = pd.DataFrame({'Class':classes, 'OmissionError':omit_col, 'ComissionError':comit_col, 'ProducerAcc':prod, 'UserAcc':user})    
 
     oa_content = f"Accuracy:{acc}\nPrecision:{prec}\nRecall:{reca}\nF1:{f1}"
-    # print(oa_content)
+    print(oa_content)
 
+    # Create confusion matrix as dataframe
+    cm=confusion_matrix(true, pred)
+    cm_df = pd.DataFrame(cm, columns = lc_dct.values(), index = lc_dct.values())
+    # plot a confusion matrix to save as a fig
+    disp = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical')
+
+    # Exports
     cwd = os.getcwd()
     output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
     if not os.path.exists(output_path):
         output_path.mkdir(parents=True)
 
+    # export class accuracies to csv
     df_class.to_csv(f"{output_path}/classAccuracy.csv")
+
+    # export overall accuracy to txt 
     with open(f"{output_path}/overallAccuracy.txt",'w') as f:
         f.write(oa_content)
-   
     print(f"Overall and Class Accuracy reports exported to: {output_path}")
+
+    # export CM to csv
+    cm_df.to_csv(f"{output_path}/confMatrix.csv")
+
+    # export CM plot to jpg
+    disp.figure_.savefig(f"{output_path}/confMatrix.jpg")
+
+    print(f"Confusion Matrix CSV file and figure exported to: {output_path}")
 # %%
