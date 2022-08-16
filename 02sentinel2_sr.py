@@ -150,7 +150,7 @@ if __name__ == "__main__":
     aoi_s = args.aoi_string#"SNMC"
     year = args.year#2021
     
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().buffer(5000)
+    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}").geometry().buffer(5000)
 
     CLOUD_FILTER = 70
     CLD_PRB_THRESH = 40
@@ -187,7 +187,7 @@ if __name__ == "__main__":
     
     #print(stack.bandNames().getInfo())
     
-    region =  ee.FeatureCollection(f"projects/{project}/assets/aoi/{aoi_s}").geometry().bounds()
+    region =  ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}").geometry().bounds()
 
     outputName = f"projects/{project}/assets/kaza-lc/input_stacks/S2_{str(year)}_stack_{aoi_s}" 
 
