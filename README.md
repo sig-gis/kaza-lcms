@@ -111,6 +111,7 @@ earthengine ls projects/wwf-sig/assets/kaza-lc
 6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter)
 
 click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC
+click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing
 
 # Scripts
 ### Each script will be run on the command-line. The user must provide values for each command-line argument to control the year and AOI to run the analysis for, and which sensor to use. The output Earth Engine asset from a given script must complete before the next script is run.
