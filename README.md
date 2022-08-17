@@ -108,7 +108,7 @@ earthengine ls projects/wwf-sig/assets/kaza-lc
 3. Create land cover primitives (03RFprimitives.py)
 4. Construct categorical land cover map from the set of land cover primitives (04generate_LC.py)
 5. Conduct accuracy assessment (05accuracy.py)
-6. Estimate area of each land cover class 
+6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter)
 
 click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC
 
