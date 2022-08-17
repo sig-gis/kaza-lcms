@@ -108,12 +108,13 @@ earthengine ls projects/wwf-sig/assets/kaza-lc
 3. Create land cover primitives (03RFprimitives.py)
 4. Construct categorical land cover map from the set of land cover primitives (04generate_LC.py)
 5. Conduct accuracy assessment (05accuracy.py)
-6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter)
+6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter & Area Estimation Google Sheets in Google Drive)
 
 click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC
+
 click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing
 
-# Scripts
+# Python Scripts
 ### Each script will be run on the command-line. The user must provide values for each command-line argument to control the year and AOI to run the analysis for, and which sensor to use. The output Earth Engine asset from a given script must complete before the next script is run.
 
 ### Here is a list of possible arguments a script will require:
@@ -129,4 +130,44 @@ click this link to gain access to the WWF_KAZA Google Drive folder: https://driv
 ### If the script reports that an Export task has been started, go to the Code Editor to check on its progress.
 
 ![kaza_readme_exportRunning](https://user-images.githubusercontent.com/51868526/183131558-c0433f1b-ad3d-49b8-9d4d-9533a16cd216.JPG)
+
+# Area Estimation (last step, not Python)
+### Once you have completed steps 1-5 for a given region and have a final Land Cover ee.Image in your Earth Engine folder, you are ready to estimate Land Cover area from that image.
+### 1. Open the EE code editor (https://code.earthengine.google.com/)
+### 2. Go to the Scripts tab at the top-left and find users/kwoodward/kazaLC under your 'Writer' repositories
+### 3. Open the pixelCounter script
+
+![kaza_readme_pixelCounter](https://user-images.githubusercontent.com/51868526/185140333-9d98daaa-f635-4eb0-a712-7d0d53a49cd1.JPG)
+This script takes an Earth Engine path to a Land Cover image and exports the amount of pixels in each Land Cover class as a CSV file to the WWF_KAZA Google Drive folder
+### 4. On Line 1 of the script, change the `img_path` string to the path of your chosen land cover image and Click Run at the top
+
+![kaza_readme_pixelCounter_Run](https://user-images.githubusercontent.com/51868526/185140532-ba6b7a70-bc1b-4a23-8815-f7fdaa872153.JPG)
+
+### 5. The Tasks tab is now highlighted orange meaning there is a new export task waiting for you to confirm. Click the Tasks tab and you'll see one new task item under 'Unsubmitted Tasks'. Click Run.
+
+### 6. A new window pops up showing the export details. All should be left as default. Click Run again and the task will be sent to the Task queue with a spinning Earth Engine logo indicating it has been submitted. 
+
+![kaza_readme_pixelCounter_RunExport](https://user-images.githubusercontent.com/51868526/185143746-9ac8d4a1-7f99-4e2f-94ec-330d1165243e.JPG)
+
+### 7. While you are waiting for the export to complete (should take less than 10 mins), go into the WWF_KAZA GDrive folder again, find the Area Estimation Google Sheet for your Region and open it.
+
+![AreaEstimationPasteTotalPixelCount](https://user-images.githubusercontent.com/51868526/185145031-ffe8c332-8287-4f06-bfd1-0f2cb395ede4.JPG)
+
+This spreadsheet computes Area Estimation of each Land Cover class within your land cover image with a 95% confidence interval. The cells that you want to update are highlighted in yellow. We need to update the Pixel Counts as well as the entire Confusion Matrix, which we will do using the pixelCount export you just exported as well as the Confusion Matrix CSV that the 05accuracy.py script exported to your local computer.
+
+### 8. Once the pixelCounter export completes, go to the WWF_KAZA Google Drive folder and find the new .csv file called 'countsReadable_[name of land cover image].csv'. Open it with Google Sheets and Copy the counts column values.
+
+![countsReadableCopy](https://user-images.githubusercontent.com/51868526/185142449-1431a1b0-7129-44e3-8822-2e099f3c785d.JPG)
+
+### 9. Paste the values in the Total Pixel Count column off to the right (highlighted in yellow) in the Area Estimation google sheet.
+
+### 10. Similarly open the local kaza-lc folder on your computer and find the 'metrics..' folder for your land cover image, and copy the entire grid of cells in that CSV file and paste it in the Confusion Matrix to update those values.
+
+![openConfMatrixCSV](https://user-images.githubusercontent.com/51868526/185145782-70a1914b-bfd9-44f5-80fc-c66b15156d78.JPG)
+
+### 11. As long as there are no #ERROR values in any of the cells (try Paste Special->Values if so), you are good to go! 🎉
+
+
+
+
 
