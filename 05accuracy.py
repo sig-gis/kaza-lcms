@@ -13,7 +13,7 @@ if __name__=="__main__":
     
     parser = argparse.ArgumentParser(
     description="Generate Accuracy report for land cover product",
-    usage = "python 05accuracy.py -p kaza-lc -a Zambezi -y 2021 -s S2"
+    usage = "python 05accuracy.py -p wwf-sig -a Zambezi -y 2021 -s S2"
     )
 
     parser.add_argument(

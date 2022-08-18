@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
     description="Create Input Stack for Classifier from Sentinel S2",
-    usage = "python 02sentinel2_sr.py -p kaza-lc -a Zambezi -y 2021"
+    usage = "python 02sentinel2_sr.py -p wwf-sig -a Zambezi -y 2021"
     )
 
     parser.add_argument(

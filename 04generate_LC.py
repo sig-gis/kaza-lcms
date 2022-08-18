@@ -52,7 +52,7 @@ if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(
     description="Generate single land cover image from land cover primitives image collection",
-    usage = "python 04generate_LC.py -p kaza-lc -a Zambezi -y 2021 -s S2 "
+    usage = "python 04generate_LC.py -p wwf-sig -a Zambezi -y 2021 -s S2 "
     )
 
     

@@ -153,7 +153,7 @@ if __name__=="__main__":
 
     parser = argparse.ArgumentParser(
     description="Create land cover binary primitives for all classes in typology",
-    usage = "python 03RFprimitives.py -p kaza-lc -a Zambezi -y 2021 -s S2"
+    usage = "python 03RFprimitives.py -p wwf-sig -a Zambezi -y 2021 -s S2"
     )
     
     parser.add_argument(
