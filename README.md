@@ -103,28 +103,27 @@ earthengine ls projects/wwf-sig/assets/kaza-lc
 
 # Project Workflow
 ### The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
-1. Generate and interpret land cover reference samples for training and testing data using Collect Earth Online (01sample_pts.py)
-2. Generate input data stack from chosen sensor used by the model (02sentinel2_sr.py **currently only using Sentinel data)
-3. Create land cover primitives (03RFprimitives.py)
-4. Construct categorical land cover map from the set of land cover primitives (04generate_LC.py)
-5. Conduct accuracy assessment (05accuracy.py)
-6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter & Area Estimation Google Sheets in Google Drive)
+### 1. Generate and interpret land cover reference samples for training and testing data using Collect Earth Online (01sample_pts.py)
+### 2. Generate input data stack from chosen sensor used by the model (02sentinel2_sr.py **currently only using Sentinel data)
+### 3. Create land cover primitives (03RFprimitives.py)
+### 4. Construct categorical land cover map from the set of land cover primitives (04generate_LC.py)
+### 5. Conduct accuracy assessment (05accuracy.py)
+### 6. Estimate area of each land cover class (code editor JS script: users/kwoodward/kazaLC/pixelCounter & Area Estimation Google Sheets in Google Drive)
 
 click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC
 
 click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing
 
 # Python Scripts
-### Each script will be run on the command-line. 
-### *The user must provide values for each command-line argument to control the year, AOI, and sensor to run the analysis with. The output Earth Engine asset from a given script must complete before the next script is run.*
-
+### Each script will be run on the command-line. The user must provide values for each command-line argument to control the year, AOI, and sensor to run the analysis with. The output Earth Engine asset from a given script must complete before the next script is run.
+### Back in your terminal window, first ensure you have changed into your `kaza-lc` directory (`cd path/to/kaza-lc`) where the scripts are located
 ## 1. 01sample_pts.py 
 ### This script generates sample points to be used as training and testing for your given AOI. Currently you provide the year for which the points are to be used and it exports points for all AOIs as Earth Engine Feature Collection and as a CSV file to a Google Drive folder. 
-### **Note 08/19/22: This script can be effectively skipped for the testing phase. This script will likely change as we decide on the best way to conduct point interpretation in CEO and finalize Land Cover typologies.**
-### * Back in your terminal window, first ensure you have changed into your `kaza-lc` directory (`cd path/to/kaza-lc`) where the scripts are located
+### **Note 08/19/22: This script can be effectively skipped for the testing phase since we have already exported sample points as an Earth Engine asset for testing. This script will likely change as we decide on the best way to conduct point interpretation in CEO, finalize Land Cover typologies, and decide the best way to re-import those sample point datasets to Earth Engine.**
+
 
 ### * Run the script with python, choosing values for its required arguments
-### example
+### example:
 ```
 python 01sample_pts.py -p wwf-sig -y 2021
 ```
