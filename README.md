@@ -115,17 +115,20 @@ click this link to accept the kazaLC Javascript repo: https://code.earthengine.g
 click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing
 
 # Python Scripts
-### Each script will be run on the command-line. The user must provide values for each command-line argument to control the year and AOI to run the analysis for, and which sensor to use. The output Earth Engine asset from a given script must complete before the next script is run.
+### Each script will be run on the command-line. 
+### *The user must provide values for each command-line argument to control the year and AOI to run the analysis for, and which sensor to use. The output Earth Engine asset from a given script must complete before the next script is run.*
 
-### Here is a list of possible arguments a script will require:
-* -p --project - name of your cloud project
-* -a --aoi_s  - the AOI to run the analysis for
-* -y --year  - year to run the analysis for
-* -s --sensor  - one of "S2" or "planet", determines which sensor the input data is compiled from
+## 1. 01sample_pts.py 
+### This script generates sample points to be used as training and testing for your given AOI. 
+### Note 08/19/22: Currently you provide the year for which the points are to be used and it exports points for all AOIs. This script will likely change as we decide on the best way to conduct point interpretation in CEO and finalize Land Cover typologies.
+### * Back in your terminal window, first ensure you have changed into your `kaza-lc` directory (`cd path/to/kaza-lc`) where the scripts are located
 
-### You can use the `-h` flag to retrieve the script's usage example.
+### * Run the script calling the `-h` flag to retrieve the script's usage example and the arguments it requires if you need a reminder of how to use it.
+```
+python 01sample_pts.py -h
+```
 
-![kaza_readme_cmdline](https://user-images.githubusercontent.com/51868526/183131644-4568f7b1-a58d-4a94-a66a-0e8def39f280.JPG)
+
 
 ### If the script reports that an Export task has been started, go to the Code Editor to check on its progress.
 
