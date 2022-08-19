@@ -49,21 +49,7 @@ git clone https://github.com/kyle-woodward/kaza-lc.git
 ![kaza_readme_cdToKazalc](https://user-images.githubusercontent.com/51868526/184143297-bbcd50ee-20eb-4466-b438-2855b01e6585.JPG)
 
 ## Earth Engine Setup
-## Option 1 - Authenticate without installing `gcloud` utility
-### 1. In your shell, first ensure you are in your custom conda env (running `conda activate env-name`), then run:
-```
-earthengine authenticate --auth_mode notebook
-```
-### 2. In the browser window that opens, select the Google account that is tied to your EE account, select the wwf-sig cloud project, then click Generate Token at the bottom of the page.
-
-![kaza_readme_notebookauthenticator](https://user-images.githubusercontent.com/51868526/184396026-be2dc257-eeb5-442c-9e76-e06cb0445db0.JPG)
-
-### 3. On the next page, select your Google account again, then click Allow on the next page.
-### 4. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter.
-
-![kaza_readme_commandline_pasteAuthToken](https://user-images.githubusercontent.com/51868526/184396045-e8c81cfd-5b55-4567-8d52-5abe4fcbf4f5.JPG)
-
-## Option 2 - Authenticate with `gcloud` utility
+### Earth Engine requires you to authenticate your account credentials to access the Earth Engine API and your chosen Cloud Project. We do this with the `gcloud` python utility
 ### 1. Download the installer for the `glcoud` command-line python [utility](https://cloud.google.com/sdk/docs/install) from Google
 ### 2. Run the installer
 ### 3. Select Single User and use the default Destination Folder
@@ -91,15 +77,15 @@ earthengine authenticate
 ### 13. Copy the authorization token it generates to your clipboard and back in your shell, paste it and hit Enter. 
 
 # Testing Your Setup
-* Test that earthengine is setup and authenticated by checking the folder contents within the `wwf-sig` cloud project. 
-* In your shell, run:
+### Test that earthengine is setup and authenticated by checking the folder contents within the `wwf-sig` cloud project. 
+### * In your shell, run:
 ```
 earthengine ls projects/wwf-sig/assets/kaza-lc
 ```
 
 ![kaza_earthenginels](https://user-images.githubusercontent.com/51868526/184402268-5876a8eb-7e1d-4d1f-aef6-658c6e20fe8c.JPG)
 
-* If you do not get an error and it returns a list of folders and assets similar to this then you are good to go! :tada:
+If you do not get an error and it returns a list of folders and assets similar to this then you are good to go! :tada:
 
 # Project Workflow
 ### The following workflow is executed for each region in KAZA (script name in parenthesis if applicable):
@@ -147,7 +133,7 @@ python 02sentinel2sr.py -p wwf-sig -a Mufunta -y 2021
 
 ### * Once the export task has completed, confirm that the new dataset exists. In the [code editor](https://code.earthengine.google.com/), go to Assets tab on top-left and navigate to the `wwf-sig` cloud project folder. Find the dataset at the path that was reported in the previous script.
 
-### screenshot of folder with Mufunta asset in there
+![input_stack_exists_in_folder](https://user-images.githubusercontent.com/51868526/185693779-cf06d1d2-2a72-41d6-a8c8-1f8847118363.PNG)
 
 ## 3. 03RFprimitives.py 
 ### This script trains probability Random Forest models for each land cover class in your typology and exports them one at a time into a land cover 'Primitives' collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lc` folder on your computer.
@@ -156,15 +142,15 @@ python 02sentinel2sr.py -p wwf-sig -a Mufunta -y 2021
 ```
 python 03RFprimitives.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ```
-### Important: the argument values should now be the same as last script to indicate you want to use the dataset you created in the last step as the input.
+### Important: the argument values must be the same as before. Each script outputs the input for the next script.
 
-### screenshot of CLI output
+![Rfprims_CLIoutput](https://user-images.githubusercontent.com/51868526/185696652-2ebb3e7f-0408-42c4-9b20-0e1d474d5467.PNG)
 
 ### * Once the script completes, check several things:
 #### 1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
+![RFprims_tasklist](https://user-images.githubusercontent.com/51868526/185696700-f3ce7aed-45b8-4fc5-bb84-0141846d0f21.PNG)
 #### 2. Go into your local `kaza-lc` folder on your computer, check that a new folder named `metrics_[sensorID]_[AOI]_[year]` was created
-#### 3. Go into that metrics folder and investigate the reports. 
-
+#### 3. Investigate the metric files located within. 
 ![metricsFolder_inside](https://user-images.githubusercontent.com/51868526/185681947-66457302-ff14-4c86-be9d-baa5f8b531db.PNG)
 
 There is one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
@@ -176,7 +162,7 @@ There is one oobError .txt file and one varImportance .csv file per land cover. 
 ```
 python 04generateLC.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ```
-### screenshot of CLI output
+![04generate_LC_CLIoutputs](https://user-images.githubusercontent.com/51868526/185698346-cd12d4bb-0f6d-4557-bb2d-e45922968a83.PNG)
 
 ### * Like you've done previously, check that the export task has been submitted in the [code editor](https://code.earthengine.google.com/), and when the task completes, check that the new output file exists in the Assets tab. 
 
@@ -187,17 +173,17 @@ python 04generateLC.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ```
 python 05accuracy.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ```
-### screenshot of CLI output
-### * Investigate the metrics files in the designated metrics folder
+![05accuracy_CLIoutput](https://user-images.githubusercontent.com/51868526/185699762-a57a05a3-a5ce-4f4e-a6c2-4cc536b5da4c.PNG)
 
-### screenshot of folder with those new metrics documents in it
+### * Investigate the metrics files in the designated metrics folder
+![metricsFolder_afterAccuracy](https://user-images.githubusercontent.com/51868526/185699976-61c2c8b4-d24c-4ea9-a504-c0dbaf4e779e.PNG)
 
 The new files are confMatrix.jpg, confMatrix.csv, classAccuracy.csv, overallAccuracy.txt
 
-## Inspecting Land Cover Outputs
+# Inspecting Land Cover Outputs
 ### In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
 ### * In the [code editor](https://code.earthengine.google.com/), in the Scripts tab top-left, find the code repository named 'users/kwoodward/inspectingLCOutputs' and open it. Edit it as necessary to display the land cover products you would like to look at and click Run.
-![inspectingLCOutputs](https://user-images.githubusercontent.com/51868526/185688793-a18ced32-c9e8-4391-84e5-5a9209dfccb3.PNG)
+![inspectingLCOutputs](https://user-images.githubusercontent.com/51868526/185697784-415a4367-f52b-48d1-8647-cf6fad81644f.PNG)
 ![insepctingLCoutputs](https://user-images.githubusercontent.com/51868526/185688973-483f3d81-df16-4613-93bf-7a89fe839b42.PNG)
 
 You can zoom in, and change the transparency of layers in the Layers widget in the top-right of the Map window.
@@ -236,8 +222,3 @@ This spreadsheet computes Area Estimation of each Land Cover class within your l
 ![openConfMatrixCSV](https://user-images.githubusercontent.com/51868526/185145782-70a1914b-bfd9-44f5-80fc-c66b15156d78.JPG)
 
 ### 10. As long as there are no #ERROR values in any of the cells (try Paste Special->Values if so), you are good to go! 🎉
-
-
-
-
-
