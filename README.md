@@ -156,7 +156,7 @@ python 03RFprimitives.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ### * Once the script completes, check several things:
 #### 1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
 ![RFprims_tasklist](https://user-images.githubusercontent.com/51868526/185696700-f3ce7aed-45b8-4fc5-bb84-0141846d0f21.PNG)
-#### 2. Go into your local `kaza-lc` folder on your computer, check that a new folder named `metrics_[sensorID]_[AOI]_[year]` was created
+#### 2. Go into your local `kaza-lc` folder on your computer, check that a new folder named `metrics_[sensorID]_[year]_[AOI]` was created
 #### 3. Investigate the metric files located within. 
 ![metricsFolder_inside](https://user-images.githubusercontent.com/51868526/185681947-66457302-ff14-4c86-be9d-baa5f8b531db.PNG)
 
@@ -185,7 +185,7 @@ python 05accuracy.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ### * Investigate the metrics files in the designated metrics folder
 ![metricsFolder_afterAccuracy](https://user-images.githubusercontent.com/51868526/185699976-61c2c8b4-d24c-4ea9-a504-c0dbaf4e779e.PNG)
 
-The new files are confMatrix.jpg, confMatrix.csv, classAccuracy.csv, overallAccuracy.txt
+**The new files are confMatrix.jpg, confMatrix.csv, classAccuracy.csv, overallAccuracy.txt**
 
 # Inspecting Land Cover Outputs
 ### In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
