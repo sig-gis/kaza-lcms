@@ -1,8 +1,6 @@
 #%%
 import ee
-
-ee.Initialize()
-
+import argparse
 
 # ######################### #
 # Random Stratified Sample for Collect Earth Online  #
@@ -18,17 +16,6 @@ ee.Initialize()
 # The output is a csv sample design where each plot
 # has 1 sample in the proper format for use in CEO
 # ######################### #
-# Paramters
-aoi = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Hwange")
-aoi2 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mufunta")
-aoi3 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mulobesi")
-aoi4 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/SNMC")
-aoi5 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Sichifulo")
-aoi6 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Zambezi")
-aoi7 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Binga")
-
-aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
-
 
 ## GLOBAL VARS
 
@@ -45,7 +32,7 @@ def export(e,mode):
     # ######################### #
     
 
-    description = 'EOSS2020_derived' + year #+ 'testGID'
+    description = 'EOSS2020_derived' + str(year) #+ 'testGID'
 
     # Drive Options,
     folder = "KAZA-LC-trainingpts"
@@ -189,20 +176,59 @@ def plot_id_global(n,feat):
     return f
 
 #%%
-# Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
-all_s = ee.FeatureCollection(sample(aoi_list[0],diff_per_class=True)) # use first aoi to start the collection for all
-counter=1
-for a in aoi_list[1:]:
-    s = sample(a,diff_per_class=True)
-    aoi_id = str(counter) # make an AOI index to append to PLOTID 
-    s = s.map(lambda f: plot_id_global(aoi_id,f)) # make PLOT ID globally unique using AOI index
-    all_s = ee.FeatureCollection(all_s).merge(s)
-    counter = counter+1
+if __name__ == "__main__":
+    ee.Initialize()
 
-print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
+    parser = argparse.ArgumentParser(
+    description="Generate sample points for land cover modeling",
+    usage = "python 01sample_pts.py -p wwf-sig -y 2021"
+    )
 
-year = '2021' # year the training pts are to be interpreted for
-project="wwf-sig" # ee project 
-
-export(all_s,'asset')
-
+    parser.add_argument(
+    "-p",
+    "--project",
+    type=str,
+    required=True
+    )
+    
+    # parser.add_argument(
+    # "-a",
+    # "--aoi_string",
+    # type=str,
+    # required=True
+    # )
+    
+    parser.add_argument(
+    "-y",
+    "--year",
+    type=int,
+    required=True
+    )
+    
+    args = parser.parse_args()
+    
+    project=args.project#kaza-lc
+    year = args.year#2021
+    
+    # Paramters
+    aoi = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Hwange")
+    aoi2 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mufunta")
+    aoi3 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mulobesi")
+    aoi4 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/SNMC")
+    aoi5 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Sichifulo")
+    aoi6 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Zambezi")
+    aoi7 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Binga")
+    aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
+    
+    # Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
+    all_s = ee.FeatureCollection(sample(aoi_list[0],diff_per_class=True)) # use first aoi to start the collection for all
+    counter=1
+    for a in aoi_list[1:]:
+        s = sample(a,diff_per_class=True)
+        aoi_id = str(counter) # make an AOI index to append to PLOTID 
+        s = s.map(lambda f: plot_id_global(aoi_id,f)) # make PLOT ID globally unique using AOI index
+        all_s = ee.FeatureCollection(all_s).merge(s)
+        counter = counter+1
+    export(all_s,'asset')
+    export(all_s,'drive')
+    print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
