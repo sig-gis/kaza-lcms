@@ -141,9 +141,9 @@ if __name__=="__main__":
     # Create confusion matrix as dataframe
     cm=confusion_matrix(true, pred)
     cm_df = pd.DataFrame(cm, columns = lc_dct.values(), index = lc_dct.values())
-    # plot a confusion matrix to save as a fig
-    disp = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical')
-
+    # plot a confusion matrix to save as a fig, make two diff versions, one where boxes contain actual sample pt counts, other where we normalize counts as % of all samples
+    disp_actual = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical')
+    disp_norm = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical',normalize='true') # normalize: 'true' (rows), 'pred' (columns), or 'all' (total sample count)
     # Exports
     cwd = os.getcwd()
     output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
@@ -162,7 +162,7 @@ if __name__=="__main__":
     cm_df.to_csv(f"{output_path}/confMatrix.csv")
 
     # export CM plot to jpg
-    disp.figure_.savefig(f"{output_path}/confMatrix.jpg")
-
+    disp_actual.figure_.savefig(f"{output_path}/confMatrix_actualValues.jpg")
+    disp_norm.figure_.savefig(f"{output_path}/confMatrix_normalized.jpg")
     print(f"Confusion Matrix CSV file and figure exported to: {output_path}")
 # %%
