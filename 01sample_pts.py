@@ -218,6 +218,8 @@ if __name__ == "__main__":
     aoi5 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Sichifulo")
     aoi6 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Zambezi")
     aoi7 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Binga")
+    # optional: add extra aoi's below then add to aoi_list
+    # aoi8 = ee.FeatureCollection("path/to/collection")
     aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
     
     # Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
