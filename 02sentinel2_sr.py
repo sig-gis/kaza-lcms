@@ -1,6 +1,7 @@
 import ee
 from utils import covariates
 from utils import harmonics
+from utils import helper
 import argparse
 idx = covariates.indices()
 
@@ -191,12 +192,13 @@ if __name__ == "__main__":
 
     outputName = f"projects/{project}/assets/kaza-lc/input_stacks/S2_{str(year)}_stack_{aoi_s}" 
 
-    task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_stack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
-
-    task_ordered.start()
-    print(f"export started: {outputName}")                   
-
-
+    if helper.check_exsits(outputName):
+        task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_stack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+        task_ordered.start()
+        print(f"export started: {outputName}")                   
+    else:
+        print(f"Image already exsits: {outputName}")
+        
 
 ###### monthly median composites ######
 # if __name__ == "__main__":

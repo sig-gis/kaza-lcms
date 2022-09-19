@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import pandas as pd
 import argparse
+from utils import helper
 
 seed = 51515
 
@@ -140,7 +141,14 @@ def primitives_to_collection(sensor,year,aoi_s):
         # print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
         importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
         
+        # TODO: do we want to skip the whole analysis if the images already exsit? or keep it as it is to allow
+        #  exporting of metrics.
+        # todo: col path doesnt contain image. need to update check for image rather than col path...
+        # if helper.check_exsits(img_coll_path):
         export_img(ee.Image(output), img_coll_path, aoi_s)
+        # else:
+            # print(f"Image already exsits: {img_coll_path}")
+        
         export_metrics(importance,oob,output) 
         
     return

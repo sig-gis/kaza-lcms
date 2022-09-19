@@ -8,6 +8,8 @@ from pathlib import Path
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
+from utils import helper
+
 if __name__=="__main__":
     ee.Initialize()
     
@@ -65,8 +67,15 @@ if __name__=="__main__":
         6:'Water',
         7:'Wetland'
         }
-    pred_LC_img = ee.Image(f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_LandCover_{aoi_s}")
-
+    image_id = f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_LandCover_{aoi_s}"
+    sample_id = f"projects/{project}/assets/kaza-lc/sample_pts/testing{aoi_s}{year}"
+    if helper.check_exsits(image_id):
+        raise ee.ee_exception.EEException('image does not exsit')
+    elif helper.check_exsits(sample_id):
+        raise ee.ee_exception.EEException('samples do not exsit')
+    else:
+        pred_LC_img = ee.Image(image_id)
+        test_pts = ee.FeatureCollection(sample_id) 
     # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
         # aggregate LC2020 sub-classes together to make training points
         
@@ -82,7 +91,7 @@ if __name__=="__main__":
     # Until we have independently interpreted LC refrence samples, the ground truth is the collapsed EOSS LC product 
     # we generated the training samples from, so the LANDCOVER property in the test points is the 'actual' for pred vs actual
 
-    test_pts = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/sample_pts/testing{aoi_s}{year}") 
+
     print('Total Test samples: ',test_pts.size().getInfo())
     test_w_pred = pred_LC_img.sampleRegions(collection=test_pts,scale=10, projection='EPSG:32734', tileScale=2, geometries=True)
 

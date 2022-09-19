@@ -1,5 +1,6 @@
 import ee
 import argparse
+from utils import helper
 
 # Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
 
@@ -34,18 +35,21 @@ def export_img(img,sensor,aoi_s,year):
     aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}")
     imgcoll_p = f"projects/{project}/assets/kaza-lc/output_landcover"
     desc = f"{sensor}_{year}_LandCover_{aoi_s}"
-    
-    task = ee.batch.Export.image.toAsset(
-        image=ee.Image(img),
-        description=desc,
-        assetId=f"{imgcoll_p}/{desc}", 
-        region=aoi.geometry().bounds(), 
-        scale=10, 
-        crs='EPSG:32734', 
-        maxPixels=1e13)
+    output_id = f"{imgcoll_p}/{desc}"
+    if helper.check_exsits(output_id):
+      task = ee.batch.Export.image.toAsset(
+          image=ee.Image(img),
+          description=desc,
+          assetId=output_id, 
+          region=aoi.geometry().bounds(), 
+          scale=10, 
+          crs='EPSG:32734', 
+          maxPixels=1e13)
 
-    task.start()
-    print(f"Export Started for {imgcoll_p}/{desc}")
+      task.start()
+      print(f"Export Started for {output_id}")
+    else:
+        print(f"Image already exsits: {output_id}")
 
 if __name__ == "__main__":
     ee.Initialize()
