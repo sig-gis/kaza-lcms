@@ -6,7 +6,7 @@ import argparse
 idx = covariates.indices()
 
 
-#ee.Initialize()
+# ee.Initialize()
 
 
 def get_s2_sr_cld_col(aoi, start_date, end_date):
@@ -118,41 +118,58 @@ def rename_month_bands(img:ee.Image) :
 
 if __name__ == "__main__":
     ee.Initialize()
-
     parser = argparse.ArgumentParser(
     description="Create Input Stack for Classifier from Sentinel S2",
-    usage = "python 02sentinel2_sr.py -p wwf-sig -a Zambezi -y 2021"
+    usage = "python 02sentinel2_sr.py -a Zambezi -y 2021"
     )
 
     parser.add_argument(
-    "-p",
-    "--project",
+    "-o",
+    "--output",
     type=str,
-    required=True
+    required=False,
+    help="The output folder to export image stack. Defaults to:  'projects/kaza-lc/assets/kaza-lc/input_stacks/' "
     )
     
     parser.add_argument(
     "-a",
     "--aoi_string",
     type=str,
-    required=True
+    required=True,
+    help="The full asset path to an aoi, or the name of an exsiting asset located in 'projects/kaza-lc/assets/kaza-lc/aoi/[aoi]' "
     )
     
     parser.add_argument(
     "-y",
     "--year",
     type=int,
-    required=True
+    required=True,
+    help="The year to generate covariates."
     )
-    
+
     args = parser.parse_args()
     
-    project=args.project#kaza-lc
-    aoi_s = args.aoi_string#"SNMC"
     year = args.year#2021
-    
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}").geometry().buffer(5000)
 
+    if '/' in args.aoi_string:
+        aoi_path = args.aoi_string.strip().rstrip('/')
+        aoi_name = aoi_path.split('/')[-1]
+    else:
+        aoi_path = f"projects/wwf-sig/assets/kaza-lc/aoi/{args.aoi_string}"
+        aoi_name = args.aoi_string
+    if args.output:
+        outputbase = args.output.strip().rstrip('/')
+    else:
+        outputbase = 'projects/wwf-sig/assets/kaza-lc/input_stacks'
+    
+    # check inputs 
+    aoi = ee.FeatureCollection(aoi_path)
+    aoi_buffered = aoi.geometry().buffer(5000)
+    assert helper.check_exsits(aoi_path) == 0, f"Check aoi path: {aoi_path}"
+    assert helper.check_exsits(outputbase) == 0, f"Check output folder exsits: {outputbase}"
+    assert len(str(year)) == 4, "year should conform to YYYY format"
+
+    
     CLOUD_FILTER = 70
     CLD_PRB_THRESH = 40
     NIR_DRK_THRESH = 0.15
@@ -161,152 +178,44 @@ if __name__ == "__main__":
 
     START_DATE = ee.Date.fromYMD(year,1,1)
     END_DATE = ee.Date.fromYMD(year,12,31)
+    output_name = f"{outputbase}/S2_{str(year)}_stack_{aoi_name}" 
+    
+    if helper.check_exsits(output_name):
+        s2_sr_cld_col = get_s2_sr_cld_col(aoi_buffered, START_DATE, END_DATE)
 
-    s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
 
+        imgColl =  ee.ImageCollection(s2_sr_cld_col.map(add_cld_shdw_mask)
+                    .map(apply_cld_shdw_mask)
+                    .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
+                    )
+        
+        percentiles = (imgColl.map(add_covariates)
+                    .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
+        )
+        
+        # add time bands
+        timeField = "system:time_start"
+        timeCollection = harmonics.addTimeConstant(imgColl, timeField)
+        
+        # compute harmonics
+        harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
+        harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+        
+        pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
+        
+        stack = idx.addTopography(pct_harmonics)
+        
+        region =  aoi.geometry().bounds()
 
-    imgColl =  ee.ImageCollection(s2_sr_cld_col.map(add_cld_shdw_mask)
-                .map(apply_cld_shdw_mask)
-                .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
-                )
-    
-    percentiles = (imgColl.map(add_covariates)
-                 .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
-    )
-    
-    # add time bands
-    timeField = "system:time_start"
-    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
-    
-    # compute harmonics
-    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
-    
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
-    
-    stack = idx.addTopography(pct_harmonics)
-    
-    #print(stack.bandNames().getInfo())
-    
-    region =  ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}").geometry().bounds()
-
-    outputName = f"projects/{project}/assets/kaza-lc/input_stacks/S2_{str(year)}_stack_{aoi_s}" 
-
-    if helper.check_exsits(outputName):
-        task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_stack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
+        task_ordered = ee.batch.Export.image.toAsset(
+            image=ee.Image(stack).clip(aoi),
+            description=f"S2_{str(year)}_stack_{aoi_name}",
+            assetId=output_name,
+            region=region.getInfo()['coordinates'],
+            maxPixels=1e13,
+            scale=10 )
         task_ordered.start()
-        print(f"export started: {outputName}")                   
+        print(f"export started: {output_name}")                   
     else:
-        print(f"Image already exsits: {outputName}")
+        print(f"Image already exsits: {output_name}")
         
-
-###### monthly median composites ######
-# if __name__ == "__main__":
-
-#     ee.Initialize()
-    
-#     aoi_s = "SNMC"
-#     year = 2021
-
-
-
-#     aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
-
-
-#     CLOUD_FILTER = 70
-#     CLD_PRB_THRESH = 40
-#     NIR_DRK_THRESH = 0.15
-#     CLD_PRJ_DIST = 2
-#     BUFFER = 100
-
-#     months = [1,2,3,4,5,6,7,8,9,10,11,12]
-#     img_list=[]
-#     for month in months:
-        
-#         START_DATE = ee.Date.fromYMD(year,month,1)
-#         END_DATE = ee.Date.fromYMD(year,month,30)
-        
-#         if month == 2:
-#             END_DATE = ee.Date.fromYMD(year,month,28)
-             
-#         s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
-
-                
-#         img =  ee.Image(s2_sr_cld_col.map(add_cld_shdw_mask)
-#                     .map(apply_cld_shdw_mask).median()
-#                     .toInt().select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
-#                     )
-#         #print(img.bandNames().size().getInfo())
-#         img = add_covariates(img)
-#         #print(month,img.bandNames().size().getInfo())                
-        
-#         img = ee.Image(img).set("system:time_start",ee.Date.fromYMD(year,month,1))
-#         img_list.append(img)
-        
-      
-#     stack = ee.ImageCollection.fromImages(img_list).toBands()
-#     #print(stack.bandNames().getInfo())
-    
-#     topo = idx.addTopography(img).select("elevation","slope","aspect","eastness","northness")
-#     stack = rename_month_bands(stack).addBands(topo)
-#     #print(stack.bandNames().getInfo())
-  
-#     region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
-                                
-#     outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}"
-
-#     task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 ) # removed .toInt() on img
-                    
-#     task_ordered.start()
-#     print(f"export started: {outputName}")
-
-######### yearly percentiles ##################
-
-# if __name__ == "__main__":
-
-#     ee.Initialize()
-
-#     aoi_s = "SNMC"
-#     year = 2021
-
-
-
-#     aoi = ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().buffer(5000)
-
-
-#     CLOUD_FILTER = 70
-#     CLD_PRB_THRESH = 40
-#     NIR_DRK_THRESH = 0.15
-#     CLD_PRJ_DIST = 2
-#     BUFFER = 100
-
-#     START_DATE = ee.Date.fromYMD(year,1,1)
-#     END_DATE = ee.Date.fromYMD(year,12,31)
-
-#     s2_sr_cld_col = get_s2_sr_cld_col(aoi, START_DATE, END_DATE)
-
-
-#     img =  ee.Image(s2_sr_cld_col.map(add_cld_shdw_mask)
-#                 .map(apply_cld_shdw_mask)
-#                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
-#                 .map(add_covariates)
-#                 .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))#.median()
-#                 #.toInt()#.select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
-#                 )               
-
-#     img = ee.Image(img).set("system:time_start",ee.Date.fromYMD(year,1,1))
-
-#     #print(img.bandNames().getInfo())
-
-#     stack = idx.addTopography(img)#.select("elevation","slope","aspect","eastness","northness")
-
-#     #print(stack.bandNames().getInfo())
-
-#     region =  ee.FeatureCollection(f"projects/sig-ee/WWF_KAZA_LC/aoi/{aoi_s}").geometry().bounds()
-
-#     outputName = f"projects/sig-ee/WWF_KAZA_LC/input_stacks/S2_{str(year)}_monthlyCompositeStack_{aoi_s}_testPercentiles" # remove suffix once in production
-
-#     task_ordered = ee.batch.Export.image.toAsset(image=ee.Image(stack).clip(aoi), description=f"S2_{str(year)}_monthlyCompositeStack_{aoi_s}", assetId=outputName,region=region.getInfo()['coordinates'], maxPixels=1e13,scale=10 )
-
-#     task_ordered.start()
-#     print(f"export started: {outputName}")
