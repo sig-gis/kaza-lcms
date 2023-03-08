@@ -1,5 +1,7 @@
+import os
 import ee
 import argparse
+from utils import helper
 
 # Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
 
@@ -28,69 +30,67 @@ def maxProbClassifyFromImageCollection(imagecollection):
 # to = [1,2,3,4,5,6,7,8]
 
 
-def export_img(img,sensor,aoi_s,year):
+def export_img(img,asset_id,aoi):
     """Export image to Primitives imageCollection"""
     
-    aoi = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/aoi/{aoi_s}")
-    imgcoll_p = f"projects/{project}/assets/kaza-lc/output_landcover"
-    desc = f"{sensor}_{year}_LandCover_{aoi_s}"
-    
-    task = ee.batch.Export.image.toAsset(
-        image=ee.Image(img),
-        description=desc,
-        assetId=f"{imgcoll_p}/{desc}", 
-        region=aoi.geometry().bounds(), 
-        scale=10, 
-        crs='EPSG:32734', 
-        maxPixels=1e13)
+    # aoi = img.geometry().bounds()
+    # aoi = ee.FeatureCollection(f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi_s}")
+    desc = os.path.basename(asset_id).replace('/','_') # f"{sensor}_{year}_LandCover_{aoi_s}"
+    if helper.check_exists(asset_id):
+      task = ee.batch.Export.image.toAsset(
+          image=ee.Image(img),
+          description=desc,
+          assetId=asset_id, 
+          region=aoi, #.geometry().bounds(), 
+          scale=10, 
+          crs='EPSG:32734', 
+          maxPixels=1e13)
 
-    task.start()
-    print(f"Export Started for {imgcoll_p}/{desc}")
+      task.start()
+      print(f"Export Started for {asset_id}")
+    else:
+        print(f"Image already exsits: {asset_id}")
 
 if __name__ == "__main__":
-    ee.Initialize()
+    ee.Initialize(project='wwf-sig')
     
     parser = argparse.ArgumentParser(
     description="Generate single land cover image from land cover primitives image collection",
-    usage = "python 04generate_LC.py -p wwf-sig -a Zambezi -y 2021 -s S2 "
+    usage = "python 04generate_LC.py -i input_primitive_collection -o output_landcover_image"
+    )
+    
+    parser.add_argument(
+    "-i",
+    "--input",
+    type=str,
+    required=True,
+    help="GEE asset path to input Primitives ImageCollection"
     )
 
-    
     parser.add_argument(
-    "-p",
-    "--project",
+    "-o",
+    "--output",
     type=str,
-    required=True
+    required=False,
+    help="GEE asset path for export. Defaults to: projects/wwf-sig/assets/kaza-lc/output_landcover/[LandCover]_input_basename"
     )
-    
-    parser.add_argument(
-    "-a",
-    "--aoi_string",
-    type=str,
-    required=True
-    )
-    
-    parser.add_argument(
-    "-y",
-    "--year",
-    type=int,
-    required=True
-    )
-    
-    parser.add_argument(
-    "-s",
-    "--sensor",
-    type=str,
-    required=True
-    )
-    
+
     args = parser.parse_args()
 
-    project=args.project #kaza-lc
-    aoi_s = args.aoi_string #SNMC
-    year = args.year #2021
-    sensor=args.sensor #S2
-
-    prims = ee.ImageCollection(f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_Primitives_{aoi_s}")
+    input_path = args.input
+    output_path = args.output
+    
+    if output_path:
+       outputbase = os.path.dirname(output_path)
+       asset_id = output_path
+       if helper.check_exists(outputbase):
+          os.popen(f"earthengine create folder {outputbase}").read()
+    else:
+       outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
+       # assumes 'Primitives' in input_path string)
+       asset_id = f"{outputbase}/{os.path.basename(input_path).replace('Primitives','LandCover')}"
+    
+    prims = ee.ImageCollection(input_path)
     max = maxProbClassifyFromImageCollection(prims)
-    export_img(max,sensor,aoi_s,year)
+    aoi = prims.first().geometry().bounds()
+    export_img(max,asset_id,aoi)

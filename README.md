@@ -127,9 +127,10 @@ Tip: First run the script (and all the others) only declaring the `-h` flag, whi
 ## 2. 02sentinel2_sr.py
 ### This script creates a data stack of input covariates to feed into the land cover models. It executes this process for one AOI and year that the user specifies.
 ### * Run the script with python, choosing values for its required arguments
+#### -a/--aoi Options: Binga, Hwange, Mufunta, Mulobesi, SNMC, Sichifulo, Zambezi
 ### example:
 ```
-python 02sentinel2sr.py -p wwf-sig -a Mufunta -y 2021
+python 02sentinel2_sr.py -p wwf-sig -a Mufunta -y 2021
 ```
 
 ![02sentinel_outputs](https://user-images.githubusercontent.com/51868526/185678779-d9a2dc2e-604d-42c8-a223-fd684e85359a.PNG)
@@ -162,12 +163,12 @@ python 03RFprimitives.py -p wwf-sig -a Mufunta -y 2021 -s S2
 
 There is one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
 
-## 4. 04generateLC.py
+## 4. 04generate_LC.py
 ### This script takes the RF primitives collection generated from the previous script and creates a single-band land cover image from them.
 ### * Run the script with python, choosing values for its required arguments
 ### example:
 ```
-python 04generateLC.py -p wwf-sig -a Mufunta -y 2021 -s S2
+python 04generate_LC.py -p wwf-sig -a Mufunta -y 2021 -s S2
 ```
 ![04generate_LC_CLIoutputs](https://user-images.githubusercontent.com/51868526/185698346-cd12d4bb-0f6d-4557-bb2d-e45922968a83.PNG)
 
