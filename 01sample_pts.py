@@ -41,7 +41,7 @@ def export(e,mode):
     bucket = "testBucket"
 
     # Asset Option
-    partialPath = f"projects/{project}/assets/kaza-lc/sample_pts/"
+    partialPath = f"projects/wwf-sig/assets/kaza-lc/sample_pts/"
     assetId = partialPath + description
     
     drive_task = ee.batch.Export.table.toDrive(collection=e, description=description+'-Drive', fileNamePrefix=description,
@@ -177,37 +177,23 @@ def plot_id_global(n,feat):
 
 #%%
 if __name__ == "__main__":
-    ee.Initialize()
+    ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
     description="Generate sample points for land cover modeling",
-    usage = "python 01sample_pts.py -p wwf-sig -y 2021"
+    usage = "python 01sample_pts.py -y 2021"
     )
-
-    parser.add_argument(
-    "-p",
-    "--project",
-    type=str,
-    required=True
-    )
-    
-    # parser.add_argument(
-    # "-a",
-    # "--aoi_string",
-    # type=str,
-    # required=True
-    # )
     
     parser.add_argument(
     "-y",
     "--year",
     type=int,
-    required=True
+    required=True,
+    help="value for 'year' property in the exported dataset"
     )
     
     args = parser.parse_args()
     
-    project=args.project#kaza-lc
     year = args.year#2021
     
     # Paramters
