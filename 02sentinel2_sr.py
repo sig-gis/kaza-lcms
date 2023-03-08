@@ -1,13 +1,10 @@
 import ee
+import os
 from utils import covariates
 from utils import harmonics
 from utils import helper
 import argparse
 idx = covariates.indices()
-
-
-# ee.Initialize()
-
 
 def get_s2_sr_cld_col(aoi, start_date, end_date):
     # Import and filter S2 SR.
@@ -31,10 +28,6 @@ def get_s2_sr_cld_col(aoi, start_date, end_date):
         })
     }))
     
-    
-    
-    
-        
 def add_cloud_bands(img):
     # Get s2cloudless image, subset the probability band.
     cld_prb = ee.Image(img.get('s2cloudless')).select('probability')
@@ -44,7 +37,6 @@ def add_cloud_bands(img):
 
     # Add the cloud probability layer and cloud mask as image bands.
     return img.addBands(ee.Image([cld_prb, is_cloud]))
-    
     
 def add_shadow_bands(img):
     # Identify water pixels from the SCL band.
@@ -70,7 +62,6 @@ def add_shadow_bands(img):
     # Add dark pixels, cloud projection, and identified shadows as image bands.
     return img.addBands(ee.Image([dark_pixels, cld_proj, shadows]))
 
-
 def add_cld_shdw_mask(img):
     # Add cloud component bands.
     img_cloud = add_cloud_bands(img)
@@ -90,7 +81,6 @@ def add_cld_shdw_mask(img):
     # Add the final cloud-shadow mask to the image.
     return img.addBands(is_cld_shdw)
   
-    
 def apply_cld_shdw_mask(img):
     # Subset the cloudmask band and invert it so clouds/shadow are 0, else 1.
     not_cld_shdw = img.select('cloudmask').Not()
@@ -112,31 +102,21 @@ def rename_month_bands(img:ee.Image) :
         return ee.String("S2").cat(month_str).cat(base)
     return ee.Image(img).rename(img.bandNames().map(edit_names))
  
-
-
 ####### Percentiles, harmonics, topo covariates ##############
 
 if __name__ == "__main__":
-    ee.Initialize()
+    ee.Initialize(project='wwf-sig')
     parser = argparse.ArgumentParser(
     description="Create Input Stack for Classifier from Sentinel S2",
-    usage = "python 02sentinel2_sr.py -a Zambezi -y 2021"
-    )
-
-    parser.add_argument(
-    "-o",
-    "--output",
-    type=str,
-    required=False,
-    help="The output folder to export image stack. Defaults to:  'projects/kaza-lc/assets/kaza-lc/input_stacks/' "
+    usage = "python 02sentinel2_sr.py -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
     )
     
     parser.add_argument(
     "-a",
-    "--aoi_string",
+    "--aoi",
     type=str,
     required=True,
-    help="The full asset path to an aoi, or the name of an exsiting asset located in 'projects/kaza-lc/assets/kaza-lc/aoi/[aoi]' "
+    help="The full asset path to an aoi, or the base name of an exsiting asset located in 'projects/wwf-sig/assets/kaza-lc/aoi/' (i.e. Zambezi)"
     )
     
     parser.add_argument(
@@ -147,29 +127,55 @@ if __name__ == "__main__":
     help="The year to generate covariates."
     )
 
+    parser.add_argument(
+    "-o",
+    "--output",
+    type=str,
+    required=False,
+    help="The full asset path for export. Default: 'projects/wwf-sig/assets/kaza-lc/input_stacks/S2_[year]_stack_[aoi]' "
+    )
+
+    parser.add_argument(
+    "-d",
+    "--dry_run",
+    dest="dry_run",
+    action="store_true",
+    help="goes through checks but does not export.",
+    )
+    
     args = parser.parse_args()
     
     year = args.year#2021
+    aoi = args.aoi
+    output = args.output
+    dry_run = args.dry_run
 
-    if '/' in args.aoi_string:
-        aoi_path = args.aoi_string.strip().rstrip('/')
+    if '/' in aoi:
+        aoi_path = aoi.strip().rstrip('/')
         aoi_name = aoi_path.split('/')[-1]
     else:
-        aoi_path = f"projects/wwf-sig/assets/kaza-lc/aoi/{args.aoi_string}"
-        aoi_name = args.aoi_string
-    if args.output:
-        outputbase = args.output.strip().rstrip('/')
+        aoi_path = f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi}"
+        aoi_name = aoi
+    # print('aoi_path',aoi_path)
+    # print('aoi_name',aoi_name)
+    if output:
+        asset_id=output # user has provided full asset path to the asset (i.e. assetId for export function)
+        outputbase = os.path.dirname(asset_id)
     else:
         outputbase = 'projects/wwf-sig/assets/kaza-lc/input_stacks'
+        asset_id = f"{outputbase}/S2_{str(year)}_stack_{aoi_name}" 
+    
+    # print('output',output)
+    # print('outputbase',outputbase)
+    # print('asset_id',asset_id)
     
     # check inputs 
     aoi = ee.FeatureCollection(aoi_path)
     aoi_buffered = aoi.geometry().buffer(5000)
-    assert helper.check_exsits(aoi_path) == 0, f"Check aoi path: {aoi_path}"
-    assert helper.check_exsits(outputbase) == 0, f"Check output folder exsits: {outputbase}"
+    assert helper.check_exists(aoi_path) == 0, f"Check aoi exists: {aoi_path}"
+    assert helper.check_exists(outputbase) == 0, f"Check output folder exsits: {outputbase}"
     assert len(str(year)) == 4, "year should conform to YYYY format"
 
-    
     CLOUD_FILTER = 70
     CLD_PRB_THRESH = 40
     NIR_DRK_THRESH = 0.15
@@ -178,9 +184,8 @@ if __name__ == "__main__":
 
     START_DATE = ee.Date.fromYMD(year,1,1)
     END_DATE = ee.Date.fromYMD(year,12,31)
-    output_name = f"{outputbase}/S2_{str(year)}_stack_{aoi_name}" 
     
-    if helper.check_exsits(output_name):
+    if helper.check_exists(asset_id):
         s2_sr_cld_col = get_s2_sr_cld_col(aoi_buffered, START_DATE, END_DATE)
 
 
@@ -207,15 +212,18 @@ if __name__ == "__main__":
         
         region =  aoi.geometry().bounds()
 
-        task_ordered = ee.batch.Export.image.toAsset(
-            image=ee.Image(stack).clip(aoi),
-            description=f"S2_{str(year)}_stack_{aoi_name}",
-            assetId=output_name,
+        task = ee.batch.Export.image.toAsset(
+            image=ee.Image(stack).clip(aoi), # do we want ot clip image to aoi or aoi buffer??
+            description=os.path.basename(asset_id), # f"S2_{str(year)}_stack_{aoi_name}",
+            assetId=asset_id,
             region=region.getInfo()['coordinates'],
             maxPixels=1e13,
             scale=10 )
-        task_ordered.start()
-        print(f"export started: {output_name}")                   
+        if dry_run:
+            print(f"would export: {asset_id}")
+        else:
+            task.start()
+            print(f"export started: {asset_id}")                   
     else:
-        print(f"Image already exsits: {output_name}")
+        print(f"Image already exsits: {asset_id}")
         

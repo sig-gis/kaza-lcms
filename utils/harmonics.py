@@ -2,7 +2,7 @@
 import ee
 import math
 
-ee.Initialize()
+ee.Initialize(project='wwf-sig')
 
 
 def addHarmonicTerms(image):
