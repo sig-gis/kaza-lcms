@@ -36,8 +36,7 @@ def export_img(img,asset_id,aoi):
     # aoi = img.geometry().bounds()
     # aoi = ee.FeatureCollection(f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi_s}")
     desc = os.path.basename(asset_id).replace('/','_') # f"{sensor}_{year}_LandCover_{aoi_s}"
-    if helper.check_exists(asset_id):
-      task = ee.batch.Export.image.toAsset(
+    task = ee.batch.Export.image.toAsset(
           image=ee.Image(img),
           description=desc,
           assetId=asset_id, 
@@ -46,10 +45,9 @@ def export_img(img,asset_id,aoi):
           crs='EPSG:32734', 
           maxPixels=1e13)
 
-      task.start()
-      print(f"Export Started for {asset_id}")
-    else:
-        print(f"Image already exsits: {asset_id}")
+    task.start()
+    print(f"Export Started for {asset_id}")
+    
 
 if __name__ == "__main__":
     ee.Initialize(project='wwf-sig')
@@ -81,14 +79,22 @@ if __name__ == "__main__":
     output_path = args.output
     
     if output_path:
-       outputbase = os.path.dirname(output_path)
-       asset_id = output_path
-       if helper.check_exists(outputbase):
-          os.popen(f"earthengine create folder {outputbase}").read()
+      outputbase = os.path.dirname(output_path)
+      asset_id = output_path
+      if helper.check_exists(outputbase) == 0:
+         os.popen(f"earthengine create folder {outputbase}").read()
+      else:
+         raise ValueError(f"Check output parent folder exists: {outputbase}")
     else:
        outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
        # assumes 'Primitives' in input_path string)
        asset_id = f"{outputbase}/{os.path.basename(input_path).replace('Primitives','LandCover')}"
+    
+    # If input ImageCollection does not exist, throw error
+    assert helper.check_exists(asset_id), f"Output image already exists: {asset_id}"
+    
+    # If output Image exists already, throw error
+    assert helper.check_exists(input_path) == 0, f"Input Primitives Collection does not exist: {input_path}"
     
     prims = ee.ImageCollection(input_path)
     max = maxProbClassifyFromImageCollection(prims)

@@ -140,7 +140,7 @@ if __name__ == "__main__":
     "--dry_run",
     dest="dry_run",
     action="store_true",
-    help="goes through checks but does not export.",
+    help="goes through checks and prints output asset path but does not export.",
     )
     
     args = parser.parse_args()

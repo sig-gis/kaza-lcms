@@ -54,23 +54,23 @@ if __name__=="__main__":
     
     # for BingaTestReferenceData, only collected forest and crop points
     # reducing from Prims to Landcover always returns values starting with 0 to n-1 classes as the strata values..
-    labels = [0,1]
-    lc_dct = {
-        0:'Crop',
-        1:'Forest',
-        }
-    
-    # labels = [0,1,2,3,4,5,6,7]
+    # labels = [0,1]
     # lc_dct = {
-    #     0:'Bare',
-    #     1:'Built',
-    #     2:'Crop',
-    #     3:'Forest',
-    #     4:'Grass',
-    #     5:'Shrub',
-    #     6:'Water',
-    #     7:'Wetland'
+    #     0:'Crop',
+    #     1:'Forest',
     #     }
+    
+    labels = [0,1,2,3,4,5,6,7]
+    lc_dct = {
+        0:'Bare',
+        1:'Built',
+        2:'Crop',
+        3:'Forest',
+        4:'Grass',
+        5:'Shrub',
+        6:'Water',
+        7:'Wetland'
+        }
     
     if helper.check_exists(image_id):
         raise ee.ee_exception.EEException('image does not exsit')
@@ -166,7 +166,7 @@ if __name__=="__main__":
     # cwd = os.getcwd()
     # output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
     if not os.path.exists(output_path):
-        output_path.mkdir(parents=True)
+        Path(output_path).mkdir(parents=True)
 
     # export class accuracies to csv
     df_class.to_csv(f"{output_path}/classAccuracy.csv")

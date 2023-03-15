@@ -74,9 +74,7 @@ def export_img(img,imgcoll_p,aoi): # dry_run:False would go here
         scale=10, 
         crs='EPSG:32734', 
         maxPixels=1e13)
-    # if dry_run:
-    #     print(f"Would Export: {imgcoll_p}/{desc}")
-    # else:
+    
     task.start()
     print(f"Export Started: {imgcoll_p}/{desc}")
 
@@ -102,30 +100,26 @@ def RFprim(training_pts,input_stack,aoi):
     output = ee.Image(inputs).clip(aoi).classify(model,'Probability').set('oobError',oob,'Class',class_value)
     return importance,oob,output
 
-def primitives_to_collection(input_stack_path,reference_data_path,output):
+def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     """ export each RF primitive image into a collection"""
-    # create empty ImageCollection 
-    if output: # user-entered ImageCollection path
-        img_coll_path = output
-        outputbase = os.path.dirname(output)
-    else:
-        outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
-        img_coll_path = f"{outputbase}/Primitives_{os.path.basename(input_stack_path)}" #default path
+    # # create empty ImageCollection 
+    # if output: # user-entered ImageCollection path
+    #     img_coll_path = output
+    #     outputbase = os.path.dirname(output)
+    # else:
+    #     outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
+    #     img_coll_path = f"{outputbase}/Primitives_{os.path.basename(input_stack_path)}" #default path
 
     # print('output', output)        
     # print('outputbase',outputbase)
     # print('img_coll_path',img_coll_path)
 
-    if helper.check_exists(img_coll_path) == 0:
-        pass # if ImgCollection exists then outputbase (its parent) also exists
-    
-    else: #img_coll_path doesn't exist
-        if helper.check_exists(outputbase) == 1: # create outputbase (ImgCollection's parent) if it doesn't exist
-            f"{outputbase} does not exist, creating it."
-            os.popen(f"earthengine create folder {outputbase}").read()
-
-        f"{img_coll_path} does not exist, creating it."
-        os.popen(f"earthengine create collection {img_coll_path}").read()
+    # path error handling is in main() level, 
+    # so we just make the IC if it doesn't exist, parent folder already will have had to exist or it wouldn't have gotten this far
+    # can justify the use case that if the IC already exists, no point in coding in extra complexity to let them try ot export images in there if those don't exist..
+    # so actually just want to make the empty IC in this function, assuming it'll never already exist because error handling at main() will have caught that
+    f"Creating empty Primitives ImageCollection: {output_ic}."
+    os.popen(f"earthengine create collection {output_ic}").read()
     
     # list of distinct LANDCOVER values
     labels = ee.FeatureCollection(reference_data_path).aggregate_array('LANDCOVER').distinct().getInfo()
@@ -166,7 +160,8 @@ def primitives_to_collection(input_stack_path,reference_data_path,output):
     # may be able to adjust this with tileScale, otherwise may need a diff functionality to avoid OOM errors
     sample_pts_w_inputs = (input_stack.sampleRegions(collection=ref_data, scale=10, tileScale=4, geometries=True)
                             .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
-                            #.limit(100000) # could just limit it to a capped number of pts? wouldn't fix code erroring out on .sampleRegions()
+                            #.limit(100000) # get user memory limit exceeded using projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData,
+                            # could just limit it to a capped number of pts? wouldn't fix code erroring out on .sampleRegions()
     
     training_pts, testing_pts = stratify_pts(sample_pts_w_inputs)
     
@@ -220,53 +215,84 @@ if __name__=="__main__":
 
     # TODO: to incorporate this would want to maybe pull out the folder/ImageCollection/Image path constructions
     #  out of primitives_to_collection() and into main() level function after parsing arguments
-    # parser.add_argument(
-    #     "-d",
-    #     "--dry_run",
-    #     dest="dry_run",
-    #     action="store_true",
-    #     help="goes through checks but does not export.",
-    #     )
+    parser.add_argument(
+        "-d",
+        "--dry_run",
+        dest="dry_run",
+        action="store_true",
+        help="goes through checks and prints paths to outputs but does not export them.",
+        )
 
     args = parser.parse_args()
 
     input_stack_path = args.input_stack
     reference_data_path = args.reference_data
     output = args.output
-    # dry_run = args.dry_run
+    dry_run = args.dry_run
+
+    # Run Checks
+
+    # Check Input Stack exists
+    assert helper.check_exists(input_stack_path) == 0, f"Check input_stack asset exists: {input_stack_path}"
     
-    # intiialize local folder upon run-time to store any model output metrics
-    cwd = os.getcwd()
+    # Check Reference data exists
+    assert helper.check_exists(reference_data_path) == 0, f"Check reference_data asset exists: {reference_data_path}"
+    
+    # Check -o output value will work if provided 
+    # you have to either provide full asset path to output asset or not provide -o value at all to use default output location 
     if output:
-        p = os.path.join(cwd,f"metrics_{os.path.basename(output)}")
+        if '/' not in output:
+            raise ValueError("Incorrect -o argument: Provide full asset path to -o or leave argument blank to use default output location")
+             
+        img_coll_path = output
+        outputbase = os.path.dirname(output)
+        # if / in path but the parent folder for your provided Primitives IC path doesn't exist, catches it
+        assert helper.check_exists(outputbase) == 0, f"Check parent folder exists: {outputbase}"
+        
     else:
-        date_id = datetime.datetime.utcnow().strftime("%Y-%m-%d").replace('-','')
-        p = os.path.join(cwd,f"metrics_output_{os.path.basename(input_stack_path)}_{date_id}")
-
-    if not os.path.exists(p):
-        Path(p).mkdir(parents=True)
-
-    # Typology
-    # TODO: how to handle output primitives so they are labeled with class name appropriately?
-    # have them pass path to a csv that delineates typology so they don't have to modify code?
-    # have them provide a LABEL porperty in reference data with LANDCOVER so we can identify it programmatically..?
+        outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
+        img_coll_path = f"{outputbase}/Primitives_{os.path.basename(input_stack_path)}" #default path
     
-    # lc_dct = {
-    #     0:'Bare',
-    #     1:'Built',
-    #     2:'Crop',
-    #     3:'Forest',
-    #     4:'Grass',
-    #     5:'Shrub',
-    #     6:'Water',
-    #     7:'Wetland'
-    #     }
-    
-    lc_dct = {
-        0:'Crop',
-        1:'Forest',
-    }
+    # don't want to let user try to export new Images into pre-existing ImageCollection, would be messy to handle
+    if helper.check_exists(img_coll_path) == 0:
+        raise AssertionError(f"Primitives ImageCollection already exists, use a new output ImageCollection: {img_coll_path}")
 
-    primitives_to_collection(input_stack_path,reference_data_path,output)
+    # Construct local 'metrics' folder path from -o output or a default name if not provided
+    cwd = os.getcwd()
+    metrics_path = os.path.join(cwd,f"metrics_{os.path.basename(img_coll_path)}")
+    
+    # print output locations and exit
+    if dry_run: 
+        print(f"Would Export Primitives ImageCollection to: {img_coll_path}")
+        print(f"Would Export Model Metrics to: {metrics_path}")
+        exit()
+    
+    else:
+        # make local metrics folder
+        if not os.path.exists(metrics_path):
+            Path(metrics_path).mkdir(parents=True)
+        
+        # Typology
+        # TODO: how to handle output primitives so they are labeled with class name appropriately?
+        # have them pass path to a csv that delineates typology so they don't have to modify code?
+        # have them provide a LABEL porperty in reference data with LANDCOVER so we can identify it programmatically..?
+    
+        lc_dct = {
+            1:'Bare',
+            2:'Built',
+            3:'Crop',
+            4:'Forest',
+            5:'Grass',
+            6:'Shrub',
+            7:'Water',
+            8:'Wetland'
+            }
+        
+        # lc_dct = {
+        #     0:'Crop',
+        #     1:'Forest',
+        # }
+        
+        primitives_to_collection(input_stack_path,reference_data_path,output)
 
 
