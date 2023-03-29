@@ -145,7 +145,7 @@ python 02sentinel2_sr.py -a Zambezi -y 2022
 
 # Train and Apply Random Forest Primitive Model for each Land Cover type
 ## Python Script: 03RFprimitives.py 
-### This script trains probability Random Forest models for each land cover class in your typology and exports them one at a time into a land cover 'Primitives' collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lc` folder on your computer.
+### This script trains probability Random Forest models for each land cover class in your typology as provided by the numeric 'LANDCOVER' property in the provided reference data. It then exports these binary probability images one land cover at a time into a land cover 'Primitives' image collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lc` folder on your computer.
 ### * Run the script with python, choosing values for its required arguments
 ### Note: `-o/--output` argument is again optional. If it is not provided, a default output path will be chosen.
 ### Note: specifying the `--dry_run` argument allows you to run checks wihout actually executing the workflow.
@@ -165,7 +165,7 @@ python 03RFprimitives.py -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTe
 
 There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
 
-# Generate final Land Cover image from the RF Primitives Collection
+# Generate Final Land Cover Image from the RF Primitives Image Collection
 ## Python Script: 04generate_LC.py
 ### This script takes the RF primitives collection generated from the previous script and creates a single-band land cover image from them.
 ### * Run the script with python, choosing values for its required arguments
@@ -190,7 +190,7 @@ You can zoom in, and change the transparency of layers in the Layers widget in t
 # Accuracy Assessment and Area Estimation using [AREA2](https://area2.readthedocs.io/en/latest/overview.html)
 ### Once you have a final Land Cover ee.Image in your Earth Engine folder, you are ready to assess its accuracy and estimate area per class from that image.
 __click this link to add the AREA2 GEE script repository to your Reader repos: [https://code.earthengine.google.com/?accept_repo=projects/AREA2/public](https://code.earthengine.google.com/?accept_repo=projects/AREA2/public)__
-### We will be using the `Stratified Estimator` script tool. 
+### We will be using the `Stratified Estimation` script tool. 
 
 ![StratifiedEstimation](imgs/AREA2_stratifiedEstimation.PNG)
 
@@ -203,13 +203,13 @@ __click this link to add the AREA2 GEE script repository to your Reader repos: [
 ### * In the third dialog box, we must specify the no data value. It must be a number that is not being used in the 'LANDCOVER' typology. For example, if your LANDCOVER values are 1-8, a no data value 0 is appropriate.
 ### * In the fourth dialog box, we provide the full GEE asset path to our testing samples `ee.FeatureCollection`. In our workflow, this is generated in the 03RFprimitives.py by separating the input reference data into '_trainingPts' and '_testingPts'. You want to select the '_testingPts' `ee.FeatureCollection`
 ### * Click Load Data, then another button 'Apply stratified estimator' will appear. Click that as well. 
-### * Points that were classified inaccurately are added to the map, and Accuracy and Area metrics are printed to the Console. 
+### * Testing points that were misclassified in our land cover image are added to the map, and Accuracy and Area metrics are printed to the Console. 
 
 ![mapview](imgs/stratifiedEstimationFillOutDialog.PNG)
 
 ![consoleview](imgs/stratifiedEstimationConsole.PNG)
 
-You can save or take a screenshot of the printed Accuracy and Area metrics. You can also retrieve the confusion/error matrices themselves as total counts or proportions by clicking the 'Show matrices' button in the UI. 
+### * You can save or take a screenshot of the printed Accuracy and Area metrics. You can also retrieve the confusion/error matrices themselves as total counts or proportions by clicking the 'Show matrices' button in the UI. 
 
 ![showmatrices](imgs/stratifiedEstimationErrorMatrices.PNG)
 
