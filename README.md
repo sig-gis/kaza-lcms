@@ -161,8 +161,9 @@ python 03RFprimitives.py -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTe
 Once the script completes, check several things:
 1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
 ![RFprims_tasklist](https://user-images.githubusercontent.com/51868526/185696700-f3ce7aed-45b8-4fc5-bb84-0141846d0f21.PNG)
-2. Go into your local `kaza-lc` folder on your computer, check that a new folder named at the reported location has been created. In the example above the folder was named `C:\kaza-lc\metrics_Primitives_BingaTestPoly_2020`.
+2. Go into your local `kaza-lc` folder on your computer, check that a new folder named at the reported location has been created. In the example above the folder was named `C:\kaza-lc\metrics\Primitives_BingaTestPoly_2020`.
 3. Investigate the metric files located within. 
+
 ![metricsFolder_inside](imgs/metrics_folder.PNG)
 
 There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
@@ -213,6 +214,8 @@ We will be using the `Stratified Estimation` script tool.
 ![consoleview](imgs/stratifiedEstimationConsole.PNG)
 
 * You can save or take a screenshot of the printed Accuracy and Area metrics. You can also retrieve the confusion/error matrices themselves as total counts or proportions by clicking the 'show error matrices' button in the UI. 
+
+*A good place to save these metrics is in the metrics subfolder generated during the RF Primitives analysis.*
 
 ![showmatrices](imgs/stratifiedEstimationErrorMatrices.PNG)
 

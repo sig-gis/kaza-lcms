@@ -6,6 +6,7 @@ from pathlib import Path
 import pandas as pd
 import argparse
 from utils import helper
+from strata import lc_dct
 
 seed = 51515
 
@@ -56,9 +57,9 @@ def export_metrics(imp,oob,img):
     idx = dct.keys()
     df = pd.DataFrame(list, index = idx)
     LC = ee.Image(img).get('Class').getInfo()
-    df.to_csv(f"{p}/varImportance{LC}.csv")
+    df.to_csv(f"{metrics_path}/varImportance{LC}.csv")
     # OOB error to txt file
-    with open(os.path.join(p,f'oobError{LC}.txt'),mode='w') as f:
+    with open(os.path.join(metrics_path,f'oobError{LC}.txt'),mode='w') as f:
         f.write(ee.String(ee.Number(oob).format()).getInfo())
         f.close()
 
@@ -102,23 +103,9 @@ def RFprim(training_pts,input_stack,aoi):
 
 def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     """ export each RF primitive image into a collection"""
-    # # create empty ImageCollection 
-    # if output: # user-entered ImageCollection path
-    #     img_coll_path = output
-    #     outputbase = os.path.dirname(output)
-    # else:
-    #     outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
-    #     img_coll_path = f"{outputbase}/Primitives_{os.path.basename(input_stack_path)}" #default path
 
-    # print('output', output)        
-    # print('outputbase',outputbase)
-    # print('img_coll_path',img_coll_path)
-
-    # path error handling is in main() level, 
-    # so we just make the IC if it doesn't exist, parent folder already will have had to exist or it wouldn't have gotten this far
-    # can justify the use case that if the IC already exists, no point in coding in extra complexity to let them try ot export images in there if those don't exist..
-    # so actually just want to make the empty IC in this function, assuming it'll never already exist because error handling at main() will have caught that
-    f"Creating empty Primitives ImageCollection: {output_ic}."
+    # make the empty IC, assuming it'll never already exist because error handling at main() will have prohibited that
+    print(f"Creating empty Primitives ImageCollection: {output_ic}.")
     os.popen(f"earthengine create collection {output_ic}").read()
     
     # list of distinct LANDCOVER values
@@ -131,19 +118,6 @@ def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     # print('LANDCOVER class values: ',labels)
     # print('prim pt list indices: ',indices)
     
-    # if that RF prim img already exists, skip
-    # lc_classes = [lc_dct[labels[i]] for i in indices]
-    # print('LandCover Classes in Reference Data: ',lc_classes)
-    
-    # TODO: do we want to skip the whole analysis if the images already exsit? or keep it as it is to allow
-    #  exporting of metrics.
-
-    # to_export = [helper.check_exists(f"{img_coll_path}/{c}") == 1 for c in lc_classes]
-    # print(to_export)
-    # for i in indices:
-    #     if to_export[i]:
-    #         print(f'will export {lc_classes[i]}')
-    
     # Landtrendr change img
     lt_change = ee.Image("projects/wwf-sig/assets/kaza-lc/input_stacks/lt_change_v2")
     # Sentinel2 SR image stack
@@ -151,29 +125,43 @@ def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     
     aoi = input_stack.geometry()
         
-    # initizalize  featColl
     # user-provided FeatureCollection reference dataset, contains LANDCOVER property with integer values
     ref_data = ee.FeatureCollection(reference_data_path).filterBounds(aoi)
     
     # generate sample pts of input stack raster info inside reference data
     # tries to retrieve literally all pixel centers of input_stack that overlap ref_data polygons, 
     # may be able to adjust this with tileScale, otherwise may need a diff functionality to avoid OOM errors
-    sample_pts_w_inputs = (input_stack.sampleRegions(collection=ref_data, scale=10, tileScale=4, geometries=True)
-                            .filter(ee.Filter.notNull(input_stack.bandNames()))) # sample the input stack band values needed for classifier
-                            #.limit(100000) # get user memory limit exceeded using projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData,
-                            # could just limit it to a capped number of pts? wouldn't fix code erroring out on .sampleRegions()
+    # sample_pts_w_inputs = (input_stack.sampleRegions(collection=ref_data, scale=10, tileScale=4, geometries=True)
+    #                         .filter(ee.Filter.notNull(input_stack.bandNames())))
     
+    # Instead we rasterize the ref polygons on their LANDCOVER values, 
+    img_paint = ee.Image(0).paint(ref_data,'LANDCOVER').clip(aoi).selfMask().rename('LANDCOVER')
+
+    # then we can stack the LANDCOVER raster w/ the input_stack and do .stratifiedSample() to control # pts per class
+    # stratifiedSample(numPoints, classBand, region, scale, projection, seed, classValues, classPoints, dropNulls, tileScale, geometries)
+    sample_pts_w_inputs = (img_paint.addBands(input_stack).stratifiedSample(
+        numPoints=10000, # pts per class
+        classBand='LANDCOVER', 
+        region = aoi, 
+        scale = 10, 
+        projection = 'EPSG:32734',
+        seed = seed,
+        dropNulls = True,
+        geometries = True) 
+        )
+  
+
     training_pts, testing_pts = stratify_pts(sample_pts_w_inputs)
     
     # exports train/test FCs if don't exist
-    export_pts(training_pts,reference_data_path+"_training")
-    export_pts(testing_pts,reference_data_path+"_testing")    
+    export_pts(training_pts,reference_data_path+"_trainingPts")
+    export_pts(testing_pts,reference_data_path+"_testingPts")    
     
     for i in indices: # running one LC class at a time
         prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(i)) # format training pts to 1/0 prim format
         # print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
         importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
-        export_img(ee.Image(output), img_coll_path, aoi) # a dry_run arg would go here
+        export_img(ee.Image(output), img_coll_path, aoi)
         export_metrics(importance,oob,output) 
         
     return
@@ -213,8 +201,6 @@ if __name__=="__main__":
         help="The full asset path for export. Defaults to: 'projects/wwf-sig/assets/kaza-lc/output_landcover/S2_[year]_Primitives_[aoi]' "
     )
 
-    # TODO: to incorporate this would want to maybe pull out the folder/ImageCollection/Image path constructions
-    #  out of primitives_to_collection() and into main() level function after parsing arguments
     parser.add_argument(
         "-d",
         "--dry_run",
@@ -255,12 +241,17 @@ if __name__=="__main__":
     
     # don't want to let user try to export new Images into pre-existing ImageCollection, would be messy to handle
     if helper.check_exists(img_coll_path) == 0:
-        raise AssertionError(f"Primitives ImageCollection already exists, use a new output ImageCollection: {img_coll_path}")
+        raise AssertionError(f"Primitives ImageCollection already exists: {img_coll_path}")
 
     # Construct local 'metrics' folder path from -o output or a default name if not provided
     cwd = os.getcwd()
-    metrics_path = os.path.join(cwd,f"metrics_{os.path.basename(img_coll_path)}")
-    
+    metrics_path = os.path.join(cwd,"metrics",os.path.basename(img_coll_path))
+    print(metrics_path)
+    # Check that LC strata in strata.py matches LANDCOVER values of input reference_data 
+    ref_data_values = ee.FeatureCollection(reference_data_path).aggregate_array('LANDCOVER').distinct().getInfo()
+    strata_values = list(lc_dct.keys())
+    assert ref_data_values == strata_values, f"'LANDCOVER' values provided in reference data does not match strata\n Reference Data 'LANDCOVER':{ref_data_values}, Strata:{strata_values}"
+
     # print output locations and exit
     if dry_run: 
         print(f"Would Export Primitives ImageCollection to: {img_coll_path}")
@@ -271,28 +262,8 @@ if __name__=="__main__":
         # make local metrics folder
         if not os.path.exists(metrics_path):
             Path(metrics_path).mkdir(parents=True)
+        print(f"Metrics will be exported to: {metrics_path}")
         
-        # Typology
-        # TODO: how to handle output primitives so they are labeled with class name appropriately?
-        # have them pass path to a csv that delineates typology so they don't have to modify code?
-        # have them provide a LABEL porperty in reference data with LANDCOVER so we can identify it programmatically..?
-    
-        lc_dct = {
-            1:'Bare',
-            2:'Built',
-            3:'Crop',
-            4:'Forest',
-            5:'Grass',
-            6:'Shrub',
-            7:'Water',
-            8:'Wetland'
-            }
-        
-        # lc_dct = {
-        #     0:'Crop',
-        #     1:'Forest',
-        # }
-        
-        primitives_to_collection(input_stack_path,reference_data_path,output)
+        primitives_to_collection(input_stack_path,reference_data_path,img_coll_path)
 
 

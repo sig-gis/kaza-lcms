@@ -9,6 +9,7 @@ import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
 from utils import helper
+from strata import lc_dct
 
 if __name__=="__main__":
     ee.Initialize(project='wwf-sig')
@@ -49,29 +50,8 @@ if __name__=="__main__":
     output_path = args.output
 
 #%%
-    # TODO: similar issue with 03RFPrims.py, whether to require user to provide a typology file or to just have the classes numbered
-    # and user must know what each number corresponds to
-    
-    # for BingaTestReferenceData, only collected forest and crop points
-    # reducing from Prims to Landcover always returns values starting with 0 to n-1 classes as the strata values..
-    # labels = [0,1]
-    # lc_dct = {
-    #     0:'Crop',
-    #     1:'Forest',
-    #     }
-    
-    labels = [0,1,2,3,4,5,6,7]
-    lc_dct = {
-        0:'Bare',
-        1:'Built',
-        2:'Crop',
-        3:'Forest',
-        4:'Grass',
-        5:'Shrub',
-        6:'Water',
-        7:'Wetland'
-        }
-    
+    labels = list(lc_dct.keys())
+
     if helper.check_exists(image_id):
         raise ee.ee_exception.EEException('image does not exsit')
     elif helper.check_exists(sample_id):
@@ -118,8 +98,8 @@ if __name__=="__main__":
     # print(f'F1: {f1}')
 
     # to get class-wise accuracies, must construct a multi-label confusion matrix, outputs true/false positives/negatives per label
-    mcm = multilabel_confusion_matrix(true, pred, sample_weight=None)
-    # mcm = multilabel_confusion_matrix(true, pred, sample_weight=None, labels=labels, samplewise=False)
+    # mcm = multilabel_confusion_matrix(true, pred, sample_weight=None)
+    mcm = multilabel_confusion_matrix(true, pred, sample_weight=None, labels=labels, samplewise=False)
     # C:\Users\kyle\anaconda3\envs\gee\lib\site-packages\sklearn\metrics\_classification.py:1334: UndefinedMetricWarning: 
     # Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
     
