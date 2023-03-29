@@ -122,7 +122,7 @@ python 01sample_pts.py -p wwf-sig -y 2021
 ```
 Tip: First run the script (and all the others) only declaring the `-h` flag, which will bring up the help dialog with a usage example and a description of required command-line arguments. 
 
-![01sample_pts_output](https://user-images.githubusercontent.com/51868526/185672231-41b25bfc-8b0c-4339-aeb2-4c7e51b7e0ce.PNG)
+![01sample_pts_output](imgs/01sample_pts_CLI.PNG)
 
 ## 2. 02sentinel2_sr.py
 ### This script creates a data stack of input covariates to feed into the land cover models. It executes this process for one AOI and year that the user specifies.
