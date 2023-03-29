@@ -110,7 +110,7 @@ example:
 conda activate gee
 cd C:\kaza-lc
 ```
-# Generate Reference Samples for Training and Accuracy Assessment
+# Generate Reference Samples
 **Python Script: 01sample_pts.py**
 
 This script generates sample points to be used as training and testing for your given AOI. Currently you provide the year for which the points are to be used and it exports points for all AOIs as Earth Engine Feature Collection and as a CSV file to a Google Drive folder. 
@@ -144,7 +144,7 @@ Once the export task has completed, confirm that the new dataset exists. In the 
 
 ![input_stack_exists_in_folder](https://user-images.githubusercontent.com/51868526/185693779-cf06d1d2-2a72-41d6-a8c8-1f8847118363.PNG)
 
-# Train and Apply Random Forest Primitive Model for each Land Cover type
+# Train and Apply Random Forest Primitive Models
 **Python Script: 03RFprimitives.py**
 
 This script trains probability Random Forest models for each land cover class in your typology as provided by the numeric 'LANDCOVER' property in the provided reference data. It then exports these binary probability images one land cover at a time into a land cover 'Primitives' image collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lc` folder on your computer.
@@ -167,7 +167,7 @@ Once the script completes, check several things:
 
 There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
 
-# Generate Final Land Cover Image from the RF Primitives Image Collection
+# Generate Final Land Cover Image
 **Python Script: 04generate_LC.py**
 
 This script takes the RF primitives collection generated from the previous script and creates a single-band land cover image from them.
@@ -182,7 +182,7 @@ projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020
 
 Like you've done previously, check that the export task has been submitted in the [code editor](https://code.earthengine.google.com/), and when the task completes, check that the new output file exists in the Assets tab. 
 
-# Inspecting Land Cover Outputs
+# Inspecting Outputs
 In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
 In the [code editor](https://code.earthengine.google.com/), in the Scripts tab top-left, find the code repository named 'users/kwoodward/inspectingLCOutputs' and open it. Edit it as necessary to display the land cover products you would like to look at and click Run.
 ![inspectingLCOutputs](https://user-images.githubusercontent.com/51868526/185697784-415a4367-f52b-48d1-8647-cf6fad81644f.PNG)
