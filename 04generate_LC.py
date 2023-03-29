@@ -6,6 +6,7 @@ from utils import helper
 # Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
 
 # don't THINK we need the remapping of array values that John originally had in the function
+# TODO: yes i do think we will need to do the remapping. But how to ensure that the remap_from and remap_to are correct?
 def maxProbClassifyFromImage(image): # remapNum,orginalNum
   #// image: multiband image of probabilities
   #// remapNum: list, list of intergers 0-N matching the number of probability bands
@@ -23,7 +24,8 @@ def maxProbClassifyFromImage(image): # remapNum,orginalNum
 
 def maxProbClassifyFromImageCollection(imagecollection):
   image = imagecollection.toBands()
-  return maxProbClassifyFromImage(image)
+  return (maxProbClassifyFromImage(image)
+          .add(1))  # in case strata is 1-8 instead of 0-7. arrayImg computation returns img values 0-n-1 for a given strata
 
 
 # from = [0,1,2,3,4,5,6,7]
