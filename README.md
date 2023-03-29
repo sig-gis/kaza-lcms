@@ -1,7 +1,7 @@
 # Running KAZA Regional Land Cover Monitoring System
 # Setup Instructions
 ## Python Environment Setup
-### 1. Install Anaconda 
+1. Install Anaconda 
 * Go to the Anaconda distribution [page](https://www.anaconda.com/products/distribution), scroll to the bottom and find the Anaconda installer file for your Operating System. 
 * Run the installer .exe and follow all recommendations in the installer. This [installation docs page](https://docs.anaconda.com/anaconda/install/) provides step-by-step guidance depending on your OS and use-case.
 * When Anaconda asks you "Do you wish the installer to initialize Anaconda3?" Say Yes
