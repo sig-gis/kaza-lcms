@@ -9,7 +9,6 @@ import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
 from utils import helper
-from strata import lc_dct
 
 if __name__=="__main__":
     ee.Initialize(project='wwf-sig')

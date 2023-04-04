@@ -6,7 +6,6 @@ from pathlib import Path
 import pandas as pd
 import argparse
 from utils import helper
-from strata import lc_dct
 
 seed = 51515
 
@@ -56,17 +55,17 @@ def export_metrics(imp,oob,img):
     list = dct.values()
     idx = dct.keys()
     df = pd.DataFrame(list, index = idx)
-    LC = ee.Image(img).get('Class').getInfo()
-    df.to_csv(f"{metrics_path}/varImportance{LC}.csv")
+    lc_class = str(ee.Image(img).get('Class').getInfo())
+    df.to_csv(f"{metrics_path}/varImportanceClass{lc_class}.csv")
     # OOB error to txt file
-    with open(os.path.join(metrics_path,f'oobError{LC}.txt'),mode='w') as f:
+    with open(os.path.join(metrics_path,f'oobErrorClass{lc_class}.txt'),mode='w') as f:
         f.write(ee.String(ee.Number(oob).format()).getInfo())
         f.close()
 
 def export_img(img,imgcoll_p,aoi): # dry_run:False would go here
     """Export image to Primitives imageCollection"""
     # aoi = ee.FeatureCollection(f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi_s}")
-    desc = ee.Image(img).getString('Class').getInfo()
+    desc = f"Class{ee.Image(img).getString('Class').getInfo()}"
     task = ee.batch.Export.image.toAsset(
         image=ee.Image(img),
         description=desc,
@@ -84,7 +83,7 @@ def RFprim(training_pts,input_stack,aoi):
     inputs = ee.Image(input_stack)
     samples = ee.FeatureCollection(training_pts)
     
-    class_value = lc_dct[ee.Feature(samples.sort('PRIM',False).first()).get('LANDCOVER').getInfo()] #get LC numeric value for the given primitive (i.e. 'PRIM':1, 'LANDCOVER':6) then map to its class label (i.e. 6: 'Water')
+    class_value = ee.String(ee.Number.format(ee.Feature(samples.sort('PRIM',False).first()).get('LANDCOVER'))) #get LC numeric value for the given primitive (i.e. 'PRIM':1, 'LANDCOVER':6) then map to its class label (i.e. 6: 'Water')
     
     model = ee.Classifier.smileRandomForest(
     numberOfTrees=100, 
@@ -98,7 +97,7 @@ def RFprim(training_pts,input_stack,aoi):
     
     importance = ee.Dictionary(model.explain()).get('importance')
     oob = ee.Dictionary(model.explain()).get('outOfBagErrorEstimate')
-    output = ee.Image(inputs).clip(aoi).classify(model,'Probability').set('oobError',oob,'Class',class_value)
+    output = ee.Image(inputs).clip(aoi).classify(model,'Probability').set('oobError',oob, 'Class',class_value) # 'Class',class_value
     return importance,oob,output
 
 def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
@@ -246,11 +245,12 @@ if __name__=="__main__":
     # Construct local 'metrics' folder path from -o output or a default name if not provided
     cwd = os.getcwd()
     metrics_path = os.path.join(cwd,"metrics",os.path.basename(img_coll_path))
-    print(metrics_path)
     # Check that LC strata in strata.py matches LANDCOVER values of input reference_data 
     ref_data_values = ee.FeatureCollection(reference_data_path).aggregate_array('LANDCOVER').distinct().getInfo()
-    strata_values = list(lc_dct.keys())
-    assert ref_data_values == strata_values, f"'LANDCOVER' values provided in reference data does not match strata\n Reference Data 'LANDCOVER':{ref_data_values}, Strata:{strata_values}"
+    
+    # not providing strata anymore, model will just model the unique values passed by reference data's LANDCOVER property
+    # strata_values = list(lc_dct.keys())
+    # assert ref_data_values == strata_values, f"'LANDCOVER' values provided in reference data does not match strata\n Reference Data 'LANDCOVER':{ref_data_values}, Strata:{strata_values}"
 
     # print output locations and exit
     if dry_run: 
