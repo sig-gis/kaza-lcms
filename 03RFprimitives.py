@@ -5,7 +5,7 @@ import datetime
 from pathlib import Path
 import pandas as pd
 import argparse
-from utils import helper
+from utils.check_exists import check_exists
 
 seed = 51515
 
@@ -27,7 +27,7 @@ def stratify_pts(pts):
 def export_pts(pts:ee.FeatureCollection,asset_id):
     """export train or test points to asset"""
     
-    if helper.check_exists(asset_id) == 1:
+    if check_exists(asset_id) == 1:
         task = ee.batch.Export.table.toAsset(pts,asset_id.replace('/','_'),asset_id)
         task.start()
         print(f'Export started: {asset_id}')
@@ -62,6 +62,7 @@ def export_metrics(imp,oob,img):
         f.write(ee.String(ee.Number(oob).format()).getInfo())
         f.close()
 
+# try to use export function defined in exports.py
 def export_img(img,imgcoll_p,aoi): # dry_run:False would go here
     """Export image to Primitives imageCollection"""
     # aoi = ee.FeatureCollection(f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi_s}")
@@ -218,10 +219,10 @@ if __name__=="__main__":
     # Run Checks
 
     # Check Input Stack exists
-    assert helper.check_exists(input_stack_path) == 0, f"Check input_stack asset exists: {input_stack_path}"
+    assert check_exists(input_stack_path) == 0, f"Check input_stack asset exists: {input_stack_path}"
     
     # Check Reference data exists
-    assert helper.check_exists(reference_data_path) == 0, f"Check reference_data asset exists: {reference_data_path}"
+    assert check_exists(reference_data_path) == 0, f"Check reference_data asset exists: {reference_data_path}"
     
     # Check -o output value will work if provided 
     # you have to either provide full asset path to output asset or not provide -o value at all to use default output location 
@@ -232,14 +233,14 @@ if __name__=="__main__":
         img_coll_path = output
         outputbase = os.path.dirname(output)
         # if / in path but the parent folder for your provided Primitives IC path doesn't exist, catches it
-        assert helper.check_exists(outputbase) == 0, f"Check parent folder exists: {outputbase}"
+        assert check_exists(outputbase) == 0, f"Check parent folder exists: {outputbase}"
         
     else:
         outputbase = "projects/wwf-sig/assets/kaza-lc/output_landcover"
         img_coll_path = f"{outputbase}/Primitives_{os.path.basename(input_stack_path)}" #default path
     
     # don't want to let user try to export new Images into pre-existing ImageCollection, would be messy to handle
-    if helper.check_exists(img_coll_path) == 0:
+    if check_exists(img_coll_path) == 0:
         raise AssertionError(f"Primitives ImageCollection already exists: {img_coll_path}")
 
     # Construct local 'metrics' folder path from -o output or a default name if not provided

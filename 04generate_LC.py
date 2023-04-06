@@ -1,7 +1,7 @@
 import os
 import ee
 import argparse
-from utils import helper
+from utils.check_exists import check_exists
 
 # Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     if output_path:
       outputbase = os.path.dirname(output_path)
       asset_id = output_path
-      if helper.check_exists(outputbase) == 0:
+      if check_exists(outputbase) == 0:
          os.popen(f"earthengine create folder {outputbase}").read()
       else:
          raise ValueError(f"Check output parent folder exists: {outputbase}")
@@ -90,10 +90,10 @@ if __name__ == "__main__":
        asset_id = f"{outputbase}/{os.path.basename(input_path).replace('Primitives','LandCover')}"
     
     # If input ImageCollection does not exist, throw error
-    assert helper.check_exists(asset_id), f"Output image already exists: {asset_id}"
+    assert check_exists(asset_id), f"Output image already exists: {asset_id}"
     
     # If output Image exists already, throw error
-    assert helper.check_exists(input_path) == 0, f"Input Primitives Collection does not exist: {input_path}"
+    assert check_exists(input_path) == 0, f"Input Primitives Collection does not exist: {input_path}"
     
     prims = ee.ImageCollection(input_path)
     max = maxProbClassifyFromImageCollection(prims)
