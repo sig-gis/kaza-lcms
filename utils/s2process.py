@@ -16,6 +16,7 @@ BUFFER = 100
 # to be pulled...
 
 def get_s2_sr_cld_col(aoi, start_date, end_date):
+    """Create S2 SR + S2 Cloud Probability Image Collection"""
     # Import and filter S2 SR.
     s2_sr_col = (ee.ImageCollection('COPERNICUS/S2_SR')
         .filterBounds(aoi)
@@ -38,6 +39,7 @@ def get_s2_sr_cld_col(aoi, start_date, end_date):
     }))
     
 def add_cloud_bands(img):
+    """computes cloud probability and probability threshold binary cloud mask as bands to input image"""
     # Get s2cloudless image, subset the probability band.
     cld_prb = ee.Image(img.get('s2cloudless')).select('probability')
 
@@ -48,6 +50,7 @@ def add_cloud_bands(img):
     return img.addBands(ee.Image([cld_prb, is_cloud]))
     
 def add_shadow_bands(img):
+    """adds dark pixels, cloud projection and shadows images as bands to input image"""
     # Identify water pixels from the SCL band.
     not_water = img.select('SCL').neq(6)
 
@@ -72,6 +75,7 @@ def add_shadow_bands(img):
     return img.addBands(ee.Image([dark_pixels, cld_proj, shadows]))
 
 def add_cld_shdw_mask(img):
+    """Adds a cloud-shadow mask as a band to the input image"""
     # Add cloud component bands.
     img_cloud = add_cloud_bands(img)
 
@@ -91,6 +95,7 @@ def add_cld_shdw_mask(img):
     return img.addBands(is_cld_shdw)
   
 def apply_cld_shdw_mask(img):
+    """apply cloud shadow mask to each image"""
     # Subset the cloudmask band and invert it so clouds/shadow are 0, else 1.
     not_cld_shdw = img.select('cloudmask').Not()
 
@@ -106,7 +111,7 @@ def add_covariates(img):
 
 # main-level function
 def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
-    """Computes preprocessed Sentinel-2 multi-band composite for an AOI"""
+    """Computes preprocessed Sentinel-2 multi-band composite within an AOI footprint"""
     start_date = ee.Date.fromYMD(start_year,1,1)
     end_date = ee.Date.fromYMD(end_year,12,31)
     
@@ -135,7 +140,16 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
     return ee.Image(stack)
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
-    """Computes preprocessed Sentinel-2 multi-band composite within reference polygons"""
+    """
+    Computes preprocessed Sentinel-2 multi-band composite within reference polygon footprints, 
+    
+    args: 
+    ref_polys: reference polygon FeatureCollection
+    ref_label: predictor property name the model needs (e.g. 'LANDCOVER')
+    ref_year: year that hte polygons were interpreted for, controls the time period of the s2 composite
+    
+    Returns: ee.Image raster stack of S2 bands and predictor band within footprints of reference polygons
+    """
     start_date = ee.Date.fromYMD(ref_year,1,1)
     end_date = ee.Date.fromYMD(ref_year,12,31)
     
@@ -163,5 +177,5 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
 
     pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
 
-    stack = idx.addTopography(pct_harmonics)
+    stack = idx.addTopography(pct_harmonics).addBands(ref_poly_img)
     return ee.Image(stack)
