@@ -8,8 +8,9 @@ def exportImgToAsset(img,desc,asset_id,region,scale):
         description=desc,
         assetId=asset_id,
         region=export_region.getInfo()['coordinates'],
-        maxPixels=1e13,
-        scale=scale)
+        scale=scale,
+        crs='EPSG:32734',
+        maxPixels=1e13)
     task.start()
     print(f"export started: {asset_id}") 
     return
