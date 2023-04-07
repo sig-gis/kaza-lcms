@@ -1,43 +1,14 @@
 #%%
 import ee
 import os
-import datetime
 from pathlib import Path
 import pandas as pd
 import argparse
 from utils.check_exists import check_exists
 
-seed = 51515
-
-def stratify_pts(pts):
-    """stratify 70/30 train and test points, export them, return training points in func for immediate use"""
-    # featColl_sys_id = ee.FeatureCollection(pts)
-    featColl = ee.FeatureCollection(pts)
-    featColl = featColl.randomColumn(columnName='random', seed=seed)
-    filt = ee.Filter.lt('random',0.7)
-    train = featColl.filter(filt)
-    test = featColl.filter(filt.Not())
-    # print('train size', train.size().getInfo())
-    # print('train breakdown',train.aggregate_histogram('LANDCOVER').getInfo())
-    # print('test size', test.size().getInfo())
-    # print('test breakdown',test.aggregate_histogram('LANDCOVER').getInfo())
-    
-    return train, test
-
-def export_pts(pts:ee.FeatureCollection,asset_id):
-    """export train or test points to asset"""
-    
-    if check_exists(asset_id) == 1:
-        task = ee.batch.Export.table.toAsset(pts,asset_id.replace('/','_'),asset_id)
-        task.start()
-        print(f'Export started: {asset_id}')
-    else:
-        print(f"{asset_id} already exists")
-    
-    return
-
 def format_pts(pts):
-    """Turn a FC of training points containing full LC typology into a list of FCs, one FC for each LC primitive"""
+    """Turn a FC of training points containing full LC typology into a list of primitive point FCs, 
+            one point FC for each LC primitive"""
     # create sets of binary training pts for each class represented in the full training pts collection
     labels = ee.FeatureCollection(pts).aggregate_array('LANDCOVER').distinct()
     def binaryPts(l):
@@ -62,11 +33,10 @@ def export_metrics(imp,oob,img):
         f.write(ee.String(ee.Number(oob).format()).getInfo())
         f.close()
 
-# try to use export function defined in exports.py
-def export_img(img,imgcoll_p,aoi): # dry_run:False would go here
+# TODO: should use export function defined in exports.py to reduce redundant code
+def export_img(img,imgcoll_p,aoi): 
     """Export image to Primitives imageCollection"""
-    # aoi = ee.FeatureCollection(f"projects/wwf-sig/assets/kaza-lc/aoi/{aoi_s}")
-    desc = f"Class{ee.Image(img).getString('Class').getInfo()}"
+    desc = f"Class{ee.Image(img).getString('Class').getInfo()}" # this would need to be defined in the Prims img for-loop
     task = ee.batch.Export.image.toAsset(
         image=ee.Image(img),
         description=desc,
@@ -79,7 +49,7 @@ def export_img(img,imgcoll_p,aoi): # dry_run:False would go here
     task.start()
     print(f"Export Started: {imgcoll_p}/{desc}")
 
-def RFprim(training_pts,input_stack,aoi):
+def RFprim(training_pts,input_stack):
     """Construct train and apply RF Probability classifier on LC Primitives"""
     inputs = ee.Image(input_stack)
     samples = ee.FeatureCollection(training_pts)
@@ -87,10 +57,11 @@ def RFprim(training_pts,input_stack,aoi):
     class_value = ee.String(ee.Number.format(ee.Feature(samples.sort('PRIM',False).first()).get('LANDCOVER'))) #get LC numeric value for the given primitive (i.e. 'PRIM':1, 'LANDCOVER':6) then map to its class label (i.e. 6: 'Water')
     
     model = ee.Classifier.smileRandomForest(
+    # can experiment with following three params for model performance
     numberOfTrees=100, 
     minLeafPopulation=1, 
     bagFraction=0.7, 
-    seed=seed).setOutputMode('PROBABILITY').train(features=samples, 
+    seed=51515).setOutputMode('PROBABILITY').train(features=samples, 
                                                     classProperty='PRIM', 
                                                     inputProperties=inputs.bandNames(), 
                                                     )
@@ -98,10 +69,10 @@ def RFprim(training_pts,input_stack,aoi):
     
     importance = ee.Dictionary(model.explain()).get('importance')
     oob = ee.Dictionary(model.explain()).get('outOfBagErrorEstimate')
-    output = ee.Image(inputs).clip(aoi).classify(model,'Probability').set('oobError',oob, 'Class',class_value) # 'Class',class_value
+    output = ee.Image(inputs).classify(model,'Probability').set('oobError',oob, 'Class',class_value) # 'Class',class_value
     return importance,oob,output
 
-def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
+def primitives_to_collection(input_stack_path,train_path,output_ic):
     """ export each RF primitive image into a collection"""
 
     # make the empty IC, assuming it'll never already exist because error handling at main() will have prohibited that
@@ -109,7 +80,7 @@ def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     os.popen(f"earthengine create collection {output_ic}").read()
     
     # list of distinct LANDCOVER values
-    labels = ee.FeatureCollection(reference_data_path).aggregate_array('LANDCOVER').distinct().getInfo()
+    labels = ee.FeatureCollection(train_path).aggregate_array('LANDCOVER').distinct().getInfo()
     # labels = ee.FeatureCollection(training_pts).aggregate_array('LANDCOVER').distinct().getInfo()
     
     # converting to index of the list of distinct LANDCOVER primtive FC's (prim_pts below)
@@ -118,49 +89,18 @@ def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
     # print('LANDCOVER class values: ',labels)
     # print('prim pt list indices: ',indices)
     
-    # Landtrendr change img
-    lt_change = ee.Image("projects/wwf-sig/assets/kaza-lc/input_stacks/lt_change_v2")
-    # Sentinel2 SR image stack
-    input_stack = ee.Image(input_stack_path)#.addBands(lt_change)
+    # Sentinel2 SR composite to apply model inference on
+    input_stack = ee.Image(input_stack_path)
     
     aoi = input_stack.geometry()
         
     # user-provided FeatureCollection reference dataset, contains LANDCOVER property with integer values
-    ref_data = ee.FeatureCollection(reference_data_path).filterBounds(aoi)
-    
-    # generate sample pts of input stack raster info inside reference data
-    # tries to retrieve literally all pixel centers of input_stack that overlap ref_data polygons, 
-    # may be able to adjust this with tileScale, otherwise may need a diff functionality to avoid OOM errors
-    # sample_pts_w_inputs = (input_stack.sampleRegions(collection=ref_data, scale=10, tileScale=4, geometries=True)
-    #                         .filter(ee.Filter.notNull(input_stack.bandNames())))
-    
-    # Instead we rasterize the ref polygons on their LANDCOVER values, 
-    img_paint = ee.Image(0).paint(ref_data,'LANDCOVER').clip(aoi).selfMask().rename('LANDCOVER')
-
-    # then we can stack the LANDCOVER raster w/ the input_stack and do .stratifiedSample() to control # pts per class
-    # stratifiedSample(numPoints, classBand, region, scale, projection, seed, classValues, classPoints, dropNulls, tileScale, geometries)
-    sample_pts_w_inputs = (img_paint.addBands(input_stack).stratifiedSample(
-        numPoints=10000, # pts per class
-        classBand='LANDCOVER', 
-        region = aoi, 
-        scale = 10, 
-        projection = 'EPSG:32734',
-        seed = seed,
-        dropNulls = True,
-        geometries = True) 
-        )
-  
-
-    training_pts, testing_pts = stratify_pts(sample_pts_w_inputs)
-    
-    # exports train/test FCs if don't exist
-    export_pts(training_pts,reference_data_path+"_trainingPts")
-    export_pts(testing_pts,reference_data_path+"_testingPts")    
+    training_pts = ee.FeatureCollection(train_path)#.filterBounds(aoi) 
     
     for i in indices: # running one LC class at a time
         prim_pts = ee.FeatureCollection(ee.List(format_pts(training_pts)).get(i)) # format training pts to 1/0 prim format
         # print(f'Index {i}, PRIM is LANDCOVER:', prim_pts.filter(ee.Filter.eq('PRIM',1)).aggregate_histogram('LANDCOVER').getInfo())
-        importance,oob,output = RFprim(prim_pts,input_stack,aoi) # run RF primitive model, get output image and metrics
+        importance,oob,output = RFprim(prim_pts,input_stack) # aoi was a kwarg, but it was only being used to filter training pts to aoi before training model, don't wanna do that anymore# run RF primitive model, get output image and metrics
         export_img(ee.Image(output), img_coll_path, aoi)
         export_metrics(importance,oob,output) 
         
@@ -168,13 +108,12 @@ def primitives_to_collection(input_stack_path,reference_data_path,output_ic):
 
 
 #%%
-
 if __name__=="__main__":
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
-    description="Create land cover primitives for all classes in provided reference data",
-    usage = "python 03RFprimitives.py -i path/to/input_stack -r path/to/reference_data -o path/to/output"
+    description="Create land cover primitives for all classes in provided training data",
+    usage = "python 03RFprimitives.py -i path/to/input_stack -t path/to/training_data -o path/to/output"
     )
     
     parser.add_argument(
@@ -186,11 +125,11 @@ if __name__=="__main__":
     )
     
     parser.add_argument(
-        "-r",
-        "--reference_data",
+        "-t",
+        "--training_data",
         type=str,
         required=True,
-        help = "full asset path to reference data"
+        help = "full asset path to training data"
     )
     
     parser.add_argument(
@@ -212,7 +151,7 @@ if __name__=="__main__":
     args = parser.parse_args()
 
     input_stack_path = args.input_stack
-    reference_data_path = args.reference_data
+    train_path = args.training_data
     output = args.output
     dry_run = args.dry_run
 
@@ -222,7 +161,7 @@ if __name__=="__main__":
     assert check_exists(input_stack_path) == 0, f"Check input_stack asset exists: {input_stack_path}"
     
     # Check Reference data exists
-    assert check_exists(reference_data_path) == 0, f"Check reference_data asset exists: {reference_data_path}"
+    assert check_exists(train_path) == 0, f"Check training_data asset exists: {train_path}"
     
     # Check -o output value will work if provided 
     # you have to either provide full asset path to output asset or not provide -o value at all to use default output location 
@@ -247,11 +186,7 @@ if __name__=="__main__":
     cwd = os.getcwd()
     metrics_path = os.path.join(cwd,"metrics",os.path.basename(img_coll_path))
     # Check that LC strata in strata.py matches LANDCOVER values of input reference_data 
-    ref_data_values = ee.FeatureCollection(reference_data_path).aggregate_array('LANDCOVER').distinct().getInfo()
-    
-    # not providing strata anymore, model will just model the unique values passed by reference data's LANDCOVER property
-    # strata_values = list(lc_dct.keys())
-    # assert ref_data_values == strata_values, f"'LANDCOVER' values provided in reference data does not match strata\n Reference Data 'LANDCOVER':{ref_data_values}, Strata:{strata_values}"
+    ref_data_values = ee.FeatureCollection(train_path).aggregate_array('LANDCOVER').distinct().getInfo()
 
     # print output locations and exit
     if dry_run: 
@@ -265,6 +200,5 @@ if __name__=="__main__":
             Path(metrics_path).mkdir(parents=True)
         print(f"Metrics will be exported to: {metrics_path}")
         
-        primitives_to_collection(input_stack_path,reference_data_path,img_coll_path)
-
-
+        # run analysis
+        primitives_to_collection(input_stack_path,train_path,img_coll_path)
