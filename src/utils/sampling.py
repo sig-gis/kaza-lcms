@@ -39,7 +39,7 @@ def strat_sample(img,region,n_points,class_values,class_points):
         classValues=class_values,
         classPoints=class_points,
         dropNulls=True, 
-        tileScale=4, 
+        tileScale=8,  # increased from 4 to reduce computation time outs on generate_train_test().
         geometries=True)
   
     return stratSample
@@ -66,10 +66,14 @@ def export_pts(pts:ee.FeatureCollection,asset_id):
     
     return
 
-def generate_train_test(input_fc_path:str,year:int,output_basename:str,n_points:int,class_values:list,class_points:list):
+def generate_train_test(input_fc_path:str,year:int,output_basename:str,n_points:int,class_values:list,class_points:list,no_split:bool=False):
     """
     extracts S2 composite data to generated train/test points within reference polygon footprints
     """
+    # default n_points if none provided
+    if n_points == None:
+       n_points = 20
+
     input_fc = ee.FeatureCollection(input_fc_path) # provide a polygon FC
 
     bbox = input_fc.geometry().bounds() # region
@@ -78,14 +82,26 @@ def generate_train_test(input_fc_path:str,year:int,output_basename:str,n_points:
     s2processed = s2process_refdata(ref_polys=input_fc,ref_label='LANDCOVER',ref_year=year)
 
     # extract sample points from s2 data within reference poly footprints
+    # debugging..
+    # print(n_points)
+    # print(class_values)
+    # print(class_points)
     sampled_pts = strat_sample(s2processed,bbox,n_points,class_values,class_points)
 
-    #stratify sample points into train/test
-    train,test = split_train_test(sampled_pts)
+    if no_split:
+      assetid = f"{output_basename}_{str(year)}_pts"
+      export_pts(sampled_pts,assetid)
+    
+    else:
+      #stratify sample points into train/test
+      train,test = split_train_test(sampled_pts)
+      #debugging..
+      # print(train.aggregate_histogram('LANDCOVER').getInfo())
+      # print(test.aggregate_histogram('LANDCOVER').getInfo())
+      
+      # export train and test pts
+      train_assetid = f"{output_basename}_{str(year)}_train_pts"
+      export_pts(train,train_assetid)
 
-    # export train and test pts
-    train_assetid = f"{output_basename}_{str(year)}_train_pts"
-    export_pts(train,train_assetid)
-
-    test_assetid = f"{output_basename}_{str(year)}_test_pts"
-    export_pts(test,test_assetid)
+      test_assetid = f"{output_basename}_{str(year)}_test_pts"
+      export_pts(test,test_assetid)

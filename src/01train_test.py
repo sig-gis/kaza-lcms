@@ -60,6 +60,14 @@ if __name__ == "__main__":
     )
     
     parser.add_argument(
+    "-ns",
+    "--no_split",
+    dest="no_split",
+    action="store_true",
+    help="don't split extracted points into train and test",
+    )
+    
+    parser.add_argument(
     "-d",
     "--dry_run",
     dest="dry_run",
@@ -72,10 +80,11 @@ if __name__ == "__main__":
     input_fc = args.input_fc
     year = args.year
     output = args.output
-    dry_run = args.dry_run
     n_points = args.n_points
     class_values = args.class_values
     class_points = args.class_points
+    dry_run = args.dry_run
+    no_split = args.no_split
 
     if output:
         asset_id_basename=output # user has provided full asset id basename
@@ -88,20 +97,39 @@ if __name__ == "__main__":
     assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
     assert len(str(year)) == 4, "year should conform to YYYY format"
     
-    # class_values and class_points must be equal length
-    if len(class_values) != len(class_points):
-        raise ValueError(f"class_points and class_values are of unequal length: {class_values} {class_points}")
+    # value checks if class_values and class_points args are both provided
+    if ((class_values != None) and (class_points != None)):
+        
+        # class_values and class_points must be equal length
+        if len(class_values) != len(class_points):
+            print(f"Error: class_points and class_values are of unequal length: {class_values} {class_points}")
+            exit()
+        
+        # user may not want to sample all classes, but provide warning to catch user error
+        class_values_actual = ee.FeatureCollection(input_fc).aggregate_array('LANDCOVER').distinct().sort().getInfo()
+        if class_values_actual != class_values:
+            print(f"Warning: All classes in the reference dataset will not be sampled with class_values provided by user (EE-Reported class_values:{class_values_actual}). Processing will continue.")
 
-    # user may not want to sample all classes, but provide warning to catch user error
-    class_values_actual = ee.FeatureCollection(input_fc).aggregate_array('LANDCOVER').distinct().sort().getInfo()
-    if class_values_actual != class_values:
-        raise RuntimeWarning(f"All classes in the reference dataset will not be sampled with class_values provided by user. EE-Reported class_values:{class_values}")
+    # if only one is provided, error 
+    elif (class_values != None and class_points == None) or (class_values == None and class_points != None):
+        print(f"Error: class_values and class_points args are codependent, provide both or neither. class_values:{class_values}, class_points:{class_points}")
+    
+    # if neither provided, n_points must be provided, otherwise we set a default n_points value 
+    else:
+        if n_points != None:
+            pass
+        else:
+            print("Warning: Defaulting to equal allocation of default n. Set n_points or class_values and class_points to control sample allocation.")
     
     if dry_run:
-        print(f"would export: {asset_id_basename}_{str(year)}_train|test_pts")
-        exit()
+        if no_split:
+            print(f"would export: {asset_id_basename}_{str(year)}_pts")
+            exit()
+        else:
+            print(f"would export: {asset_id_basename}_{str(year)}_train|test_pts")
+            exit()
     else:
-        generate_train_test(input_fc,year,asset_id_basename,n_points,class_values,class_points)
+        generate_train_test(input_fc,year,asset_id_basename,n_points,class_values,class_points,no_split)
     
     
     
