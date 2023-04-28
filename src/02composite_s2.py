@@ -67,7 +67,7 @@ if __name__ == "__main__":
     
     # check inputs 
     aoi = ee.FeatureCollection(aoi_path)
-    aoi_buffered = aoi.geometry().buffer(5000)
+    aoi_buffered = aoi.geometry().buffer(1000)
     assert check_exists(aoi_path) == 0, f"Check aoi exists: {aoi_path}"
     assert check_exists(outputbase) == 0, f"Check output folder exsits: {outputbase}"
     assert len(str(year)) == 4, "year should conform to YYYY format"

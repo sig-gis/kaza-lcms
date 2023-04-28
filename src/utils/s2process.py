@@ -9,12 +9,6 @@ NIR_DRK_THRESH = 0.15
 CLD_PRJ_DIST = 2
 BUFFER = 100
 
-# the point at which using this workflow for generating an inference stack may diverge from using this workflow to extract data to reference polygons would be
-# after get_s2_sr_cld_col, before add_cld_shadow_mask and apply_cld_shadow_mask are run,
-# we would want to use the rasterized polygons to mask the result of get_s2_sr_cld_col before doing the cloud/shadow masking and computing covariates
-# there's a chance it will work ok without doing this though, its just that the polygons will be so spread out for field collected data so more s2 images needing
-# to be pulled...
-
 def get_s2_sr_cld_col(aoi, start_date, end_date):
     """Create S2 SR + S2 Cloud Probability Image Collection"""
     # Import and filter S2 SR.
