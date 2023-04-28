@@ -42,18 +42,19 @@ if __name__ == "__main__":
     help="Number of points per class. Default: 200"
     )
     # fix list parsing..
-    parser.add_argument('--list-type-nargs', type=list, nargs='+')
-
     parser.add_argument(
-    "--class_values",
-    type=list,
+    '--class_values', 
+    type=int, 
+    nargs='+',
     required=False,
     help="list of unique LANDCOVER values in input Feature Collection"
     )
 
+
     parser.add_argument(
     "--class_points",
-    type=list,
+    type=int,
+    nargs='+',
     required=False,
     help="number of samples to collect per class"
     )
@@ -87,19 +88,20 @@ if __name__ == "__main__":
     assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
     assert len(str(year)) == 4, "year should conform to YYYY format"
     
-    # error handling around last optional args
+    # class_values and class_points must be equal length
     if len(class_values) != len(class_points):
         raise ValueError(f"class_points and class_values are of unequal length: {class_values} {class_points}")
 
-    class_values_actual = ee.FeatureCollection(input_fc).aggregate_array('LANDCOVER').distinct().getInfo()
+    # user may not want to sample all classes, but provide warning to catch user error
+    class_values_actual = ee.FeatureCollection(input_fc).aggregate_array('LANDCOVER').distinct().sort().getInfo()
     if class_values_actual != class_values:
-        raise RuntimeWarning(f"All reference classes in the input will not be sampled with class_values provided by user. EE-Reported class_values:{class_values}")
+        raise RuntimeWarning(f"All classes in the reference dataset will not be sampled with class_values provided by user. EE-Reported class_values:{class_values}")
     
     if dry_run:
         print(f"would export: {asset_id_basename}_{str(year)}_train|test_pts")
         exit()
     else:
-        generate_train_test(input_fc,year,asset_id_basename,)
+        generate_train_test(input_fc,year,asset_id_basename,n_points,class_values,class_points)
     
     
     

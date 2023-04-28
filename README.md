@@ -120,7 +120,7 @@ example:
 python 01sample_pts.py -y 2022
 ```
 
-![01sample_pts_output](imgs/01sample_pts_CLI.PNG)
+![01sample_pts_output](docs/imgs/01sample_pts_CLI.PNG)
 
 # Generate Input Stack
 **Python Script: 02sentinel2_sr.py**
@@ -134,11 +134,11 @@ example:
 python 02sentinel2_sr.py -a Zambezi -y 2022
 ```
 
-![02sentinel_outputs](imgs/02sentinel2_sr_CLI.PNG)
+![02sentinel_outputs](docs/imgs/02sentinel2_sr_CLI.PNG)
 
 The script reports that it is exporting a new dataset to the Earth Engine project. You can monitor submitted Earth Engine tasks in the [code editor](https://code.earthengine.google.com/) and clicking on Tasks tab in top-right
 
-![script2_EEtaskRunning](imgs/script2_export_task.PNG)
+![script2_EEtaskRunning](docs/imgs/script2_export_task.PNG)
 
 Once the export task has completed, confirm that the new dataset exists. In the [code editor](https://code.earthengine.google.com/), go to Assets tab on top-left and navigate to the `wwf-sig` cloud project folder. Find the dataset at the path that was reported in the previous script.
 
@@ -156,7 +156,7 @@ example:
 python 03RFprimitives.py -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTestPoly_stack_2020 -r projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData  -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_2020
 ```
 
-![Rfprims_CLIoutput](imgs/03RFprimitives_CLI.PNG)
+![Rfprims_CLIoutput](docs/imgs/03RFprimitives_CLI.PNG)
 
 Once the script completes, check several things:
 1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
@@ -164,7 +164,7 @@ Once the script completes, check several things:
 2. Go into your local `kaza-lc` folder on your computer, check that a new folder named at the reported location has been created. In the example above the folder was named `C:\kaza-lc\metrics\Primitives_BingaTestPoly_2020`.
 3. Investigate the metric files located within. 
 
-![metricsFolder_inside](imgs/metrics_folder.PNG)
+![metricsFolder_inside](docs/imgs/metrics_folder.PNG)
 
 There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
 
@@ -179,7 +179,7 @@ example:
 python 04generate_LC.py -i projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_stack_2020 -o 
 projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020
 ```
-![04generate_LC_CLIoutputs](imgs/04_generateLC_CLI.PNG)
+![04generate_LC_CLIoutputs](docs/imgs/04_generateLC_CLI.PNG)
 
 Like you've done previously, check that the export task has been submitted in the [code editor](https://code.earthengine.google.com/), and when the task completes, check that the new output file exists in the Assets tab. 
 
@@ -196,11 +196,11 @@ Once you have a final Land Cover ee.Image in your Earth Engine folder, you are r
 __click this link to add the AREA2 GEE script repository to your Reader repos: [https://code.earthengine.google.com/?accept_repo=projects/AREA2/public](https://code.earthengine.google.com/?accept_repo=projects/AREA2/public)__
 We will be using the `Stratified Estimation` script tool. 
 
-![StratifiedEstimation](imgs/AREA2_stratifiedEstimation.PNG)
+![StratifiedEstimation](docs/imgs/AREA2_stratifiedEstimation.PNG)
 
 * Open the script and click `Run`. A User Interface will be generated.
 
-![RunStratifiedEstimation](imgs/stratifiedEstimationUIOpen.PNG)
+![RunStratifiedEstimation](docs/imgs/stratifiedEstimationUIOpen.PNG)
 
 * In the first dialog box, we will provide the full GEE asset path to our Land Cover `ee.Image`.
 * We leave the second dialog box, 'Specify Band' as default 1
@@ -209,14 +209,14 @@ We will be using the `Stratified Estimation` script tool.
 * Click 'Load data', then another button 'Apply stratified estimator' will appear. Click that as well. 
 * Testing points that were misclassified in our land cover image are added to the map, and Accuracy and Area metrics are printed to the Console. 
 
-![mapview](imgs/stratifiedEstimationFillOutDialog.PNG)
+![mapview](docs/imgs/stratifiedEstimationFillOutDialog.PNG)
 
-![consoleview](imgs/stratifiedEstimationConsole.PNG)
+![consoleview](docs/imgs/stratifiedEstimationConsole.PNG)
 
 * You can save or take a screenshot of the printed Accuracy and Area metrics. You can also retrieve the confusion/error matrices themselves as total counts or proportions by clicking the 'show error matrices' button in the UI. 
 
 *A good place to save these metrics is in the metrics subfolder generated during the RF Primitives analysis.*
 
-![showmatrices](imgs/stratifiedEstimationErrorMatrices.PNG)
+![showmatrices](docs/imgs/stratifiedEstimationErrorMatrices.PNG)
 
 
