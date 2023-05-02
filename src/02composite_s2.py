@@ -1,11 +1,11 @@
 import ee
 import os
-from utils.s2process import s2process
-from utils.exports import exportImgToAsset
-from utils.check_exists import check_exists
+from src.utils.s2process import s2process
+from src.utils.exports import exportImgToAsset
+from src.utils.check_exists import check_exists
 import argparse
 
-if __name__ == "__main__":
+def main():
     ee.Initialize(project='wwf-sig')
     parser = argparse.ArgumentParser(
     description="Create Sentinel-2 Composite for an AOI",
@@ -82,3 +82,7 @@ if __name__ == "__main__":
     else:
         print(f"Image already exsits: {asset_id}")
         
+
+
+if __name__ == "__main__":
+    main()

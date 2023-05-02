@@ -1,6 +1,7 @@
 import ee
-from utils import covariates
-from utils import harmonics
+from src.utils import covariates
+from src.utils import harmonics
+from src.utils import model_inputs
 idx = covariates.indices()
 
 CLOUD_FILTER = 70
@@ -103,7 +104,6 @@ def add_covariates(img):
     img = img.select(covariates) # because .addBands() will create duplicates of pre-existing bands
     return img
 
-# main-level function
 def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
     """Computes preprocessed Sentinel-2 multi-band composite within an AOI footprint"""
     start_date = ee.Date.fromYMD(start_year,1,1)
@@ -121,14 +121,17 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
     )
 
     # add time bands
-    timeField = "system:time_start"
-    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
+    # timeField = "system:time_start"
+    # timeCollection = harmonics.addTimeConstant(imgColl, timeField)
 
     # compute harmonics
-    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+    if model_inputs['addHarmonics']: # True or False
+        harmonics_features = harmonics.doHarmonicsFromOptions(imgColl) 
 
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
+    # harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
+    # harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+
+    pct_harmonics = ee.Image.cat([percentiles,harmonics_features])
 
     stack = idx.addTopography(pct_harmonics)
     return ee.Image(stack)
@@ -162,14 +165,17 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
     )
 
     # add time bands
-    timeField = "system:time_start"
-    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
+    # timeField = "system:time_start"
+    # timeCollection = harmonics.addTimeConstant(imgColl, timeField)
 
     # compute harmonics
-    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+    if model_inputs['addHarmonics']: # True or False
+        harmonics_features = harmonics.doHarmonicsFromOptions(imgColl) 
 
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
+    # harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
+    # harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
+
+    pct_harmonics = ee.Image.cat([percentiles,harmonics_features])
 
     stack = idx.addTopography(pct_harmonics).addBands(ref_poly_img)
     return ee.Image(stack)

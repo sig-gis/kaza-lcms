@@ -175,8 +175,7 @@ def plot_id_global(n,feat):
     f = f.set('PLOTID',gid, 'SAMPLEID', gid)
     return f
 
-#%%
-if __name__ == "__main__":
+def main():
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
@@ -220,3 +219,6 @@ if __name__ == "__main__":
     export(all_s,'asset')
     export(all_s,'drive')
     print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
+#%%
+if __name__ == "__main__":
+    main()

@@ -1,5 +1,5 @@
 import ee, math
-
+from src.utils.model_inputs import model_inputs
 class indices():
 
 	def __init__(self):
@@ -316,5 +316,26 @@ def returnCovariates(img):
 	up = addIndices(img.select(bandHigh,bands),"p80")
 		
 	img = down.addBands(middle).addBands(up)
+	
+	return img
+
+def returnCovariatesFromOptions(img):
+	"""
+	Compute image covariates according to user settings.
+	feature engineering options are set by user in src/model_inputs.py and imported at top of this module
+	"""
+	covariates = model_inputs['indices']
+		
+	index = indices()
+		
+	img = ee.Image(img)
+	img = index.getIndices(img,covariates)
+	
+	if model_inputs['addTasselCap']:
+		img = index.addAllTasselCapIndices(img)
+	if model_inputs['addJRCWater']:
+		img = index.addJRC(img).unmask(0)
+	if model_inputs['addTopography']:
+		img = index.addTopography(img).unmask(0)
 	
 	return img

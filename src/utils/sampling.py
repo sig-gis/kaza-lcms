@@ -1,7 +1,7 @@
 import os
 import ee
-from utils.s2process import s2process_refdata
-from utils.check_exists import check_exists
+from src.utils.s2process import s2process_refdata
+from src.utils.check_exists import check_exists
 ee.Initialize(project='wwf-sig')
  
 seed=10110

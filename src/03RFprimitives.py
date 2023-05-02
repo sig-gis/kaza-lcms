@@ -2,10 +2,10 @@ import ee
 import os
 from pathlib import Path
 import argparse
-from utils.check_exists import check_exists
-from utils.primitives import primitives_to_collection
+from src.utils.check_exists import check_exists
+from src.utils.primitives import primitives_to_collection
 
-if __name__=="__main__":
+def main():
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
@@ -100,3 +100,6 @@ if __name__=="__main__":
         # run analysis
         input_stack = ee.Image(input_stack_path)
         primitives_to_collection(input_stack,train_path,img_coll_path,metrics_path)
+
+if __name__=="__main__":
+    main()

@@ -1,6 +1,7 @@
 # harmonics.py
 import ee
 import math
+from src.utils.model_inputs import model_inputs
 
 ee.Initialize(project='wwf-sig')
 
@@ -69,6 +70,22 @@ def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
 
     return imageCollection.map(lambda i: _(i, timeField))
 
+def doHarmonicsFromOptions(imgColl:ee.ImageCollection):
+    bands = model_inputs['harmonicsOptions'].keys()
+    
+    def byBand(band):
+        start = model_inputs[band]['start']
+        end = model_inputs[band]['end']
+        imgColl = (ee.ImageCollection(imgColl)
+                            .select(band)
+                            .filter(ee.Filter.dayOfYear(start,end)))
+        # add time bands
+        timeField = "system:time_start"
+        timeCollection = addTimeConstant(imgColl, timeField)
+        
+        return ee.Image(calculateHarmonic(timeCollection,band))
+    
+    return ee.Image.cat(ee.List(bands).map(byBand))
 
 if __name__ == "__main__":
     # inputs
@@ -102,3 +119,9 @@ if __name__ == "__main__":
     # test rgb returns correct bands
     eetest = ee.Algorithms.IsEqual(rgb.bandNames(), ["red", "green", "blue"]).getInfo()
     assert eetest is True
+
+    harmonicsByOptions = doHarmonicsFromOptions(imageCollection)
+    optionBands = 'swir1'
+    assert (harmonicsByOptions.bandNames().getInfo() 
+            == ee.List([optionBands.cat("_phase"), optionBands.cat("_amplitude")]).getInfo()
+            ) 

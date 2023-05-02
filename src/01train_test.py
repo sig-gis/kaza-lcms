@@ -1,11 +1,11 @@
 import argparse
 import os
-from utils.check_exists import check_exists
-from utils.sampling import generate_train_test
+from src.utils.check_exists import check_exists
+from src.utils.sampling import generate_train_test
 import ee
 ee.Initialize(project='wwf-sig')
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
     description="Extract Train and Test Points from Reference Polygon Data",
     usage = "python 01train_test.py -i path/to/reference_polygon_fc -y 2021 -o projects/wwf-sig/assets/kaza-lc/sample_pts/dummyPointsKDW"
@@ -130,7 +130,9 @@ if __name__ == "__main__":
             exit()
     else:
         generate_train_test(input_fc,year,asset_id_basename,n_points,class_values,class_points,no_split)
-    
-    
-    
-    
+
+if __name__ == "__main__":
+    main()
+
+
+
