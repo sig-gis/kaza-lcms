@@ -243,17 +243,19 @@ class indices():
 		""" add indices to image"""
 		
 		# no need to add indices that are already there
-		indices = self.removeDuplicates(covariates,img.bandNames().getInfo())
+		# see TODO below, can't use removeDuplicates in .map()
+		# indices = self.removeDuplicates(covariates,img.bandNames().getInfo())
+		indices = covariates
 		
 		for item in indices:
 			img = self.functionList[item](img)
 
 		return img
 
-
 	def removeDuplicates(self,covariateList,bands):
 		""" function to remove duplicates, i.e. existing bands do not need to be calculated """
-		
+		# TODO: this does not scale to being mappable server side (can't use getInfo in mapped functions)
+		# would need to EEify this logic to use with ee.List()'s
 		return [elem for elem in covariateList if elem not in bands]
 
 	def renameBands(self,image,prefix):
@@ -333,9 +335,5 @@ def returnCovariatesFromOptions(img):
 	
 	if model_inputs['addTasselCap']:
 		img = index.addAllTasselCapIndices(img)
-	if model_inputs['addJRCWater']:
-		img = index.addJRC(img).unmask(0)
-	if model_inputs['addTopography']:
-		img = index.addTopography(img).unmask(0)
 	
 	return img

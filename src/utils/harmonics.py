@@ -71,21 +71,45 @@ def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
     return imageCollection.map(lambda i: _(i, timeField))
 
 def doHarmonicsFromOptions(imgColl:ee.ImageCollection):
-    bands = model_inputs['harmonicsOptions'].keys()
+    imgColl = ee.ImageCollection(imgColl)
+
+    # construct EE dict from model_inputs python dict
+    eedict = ee.Dictionary(model_inputs)
     
-    def byBand(band):
-        start = model_inputs[band]['start']
-        end = model_inputs[band]['end']
-        imgColl = (ee.ImageCollection(imgColl)
+    # get harmonicsOptions dictionary
+    harmonicsOptions = eedict.get('harmonicsOptions')
+    
+    # get band keys as list
+    bands = ee.Dictionary(harmonicsOptions).keys()
+    
+    def harmonicByBand(band):
+        band = ee.String(band)
+        # get the params for that band
+        bandwiseParams = ee.Dictionary(harmonicsOptions).get(band)
+        
+        # get the start and end DOY parameters
+        start = ee.Dictionary(bandwiseParams).get('start')
+        end = ee.Dictionary(bandwiseParams).get('end')
+        
+        # create temporal filtered imgColl for that band
+        imgCollByBand = (ee.ImageCollection(imgColl)
                             .select(band)
                             .filter(ee.Filter.dayOfYear(start,end)))
         # add time bands
         timeField = "system:time_start"
-        timeCollection = addTimeConstant(imgColl, timeField)
+        timeCollection = addTimeConstant(imgCollByBand, timeField)
         
         return ee.Image(calculateHarmonic(timeCollection,band))
     
-    return ee.Image.cat(ee.List(bands).map(byBand))
+    # do harmonics by band key in model_inputs dictionary
+    listOfImages = ee.Image.cat(ee.List(bands).map(harmonicByBand))
+    bandStack = ee.Image(ee.ImageCollection.fromImages(listOfImages).toBands())
+    
+    # to remove srcImg band name indexing resulting from .toBands() 
+    # (i.e. [0_swir1_phase, 0_swir1_amplitude] -> [swir1_phase, swir1_amplitude] )
+    bandNames = bandStack.bandNames()
+    fixedBandNames = bandNames.map(lambda e: ee.String(e).split("_").slice(-2).join("_"))
+    return bandStack.rename(fixedBandNames)
 
 if __name__ == "__main__":
     # inputs

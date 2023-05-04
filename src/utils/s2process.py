@@ -1,7 +1,7 @@
 import ee
 from src.utils import covariates
 from src.utils import harmonics
-from src.utils import model_inputs
+from src.utils.model_inputs import model_inputs
 idx = covariates.indices()
 
 CLOUD_FILTER = 70
@@ -115,25 +115,27 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
                 .map(apply_cld_shdw_mask)
                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
                 )
-
-    percentiles = (imgColl.map(add_covariates)
-                .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
-    )
-
-    # add time bands
-    # timeField = "system:time_start"
-    # timeCollection = harmonics.addTimeConstant(imgColl, timeField)
-
-    # compute harmonics
-    if model_inputs['addHarmonics']: # True or False
-        harmonics_features = harmonics.doHarmonicsFromOptions(imgColl) 
-
-    # harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    # harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
-
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_features])
-
-    stack = idx.addTopography(pct_harmonics)
+    
+    # compute spectral indices per image from model_inputs settings
+    addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
+    
+    # compute desired percentile composites on bands/indices
+    percentile_options = model_inputs['percentileOptions']
+    percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
+    
+    # compute harmonics if desired
+    if model_inputs['addHarmonics']:
+        harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
+    stack = ee.Image.cat([percentiles,harmonics_features])
+    
+    # add JRC variables if desired
+    if model_inputs['addJRCWater']:
+        stack = idx.addJRC(stack).unmask(0)
+    
+    # add topography variables if desired    
+    if model_inputs['addTopography']:
+         stack = idx.addTopography(stack).unmask(0)
+    
     return ee.Image(stack)
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
@@ -160,22 +162,24 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
                 )
 
-    percentiles = (imgColl.map(add_covariates)
-                .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
-    )
-
-    # add time bands
-    # timeField = "system:time_start"
-    # timeCollection = harmonics.addTimeConstant(imgColl, timeField)
-
-    # compute harmonics
-    if model_inputs['addHarmonics']: # True or False
-        harmonics_features = harmonics.doHarmonicsFromOptions(imgColl) 
-
-    # harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    # harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
-
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_features])
-
-    stack = idx.addTopography(pct_harmonics).addBands(ref_poly_img)
-    return ee.Image(stack)
+    # compute spectral indices per image from model_inputs settings
+    addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
+    
+    # compute desired percentile composites on bands/indices
+    percentile_options = model_inputs['percentileOptions']
+    percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
+    
+    # compute harmonics if desired
+    if model_inputs['addHarmonics']:
+        harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
+    stack = ee.Image.cat([percentiles,harmonics_features])
+    
+    # add JRC variables if desired
+    if model_inputs['addJRCWater']:
+        stack = idx.addJRC(stack).unmask(0)
+    
+    # add topography variables if desired    
+    if model_inputs['addTopography']:
+         stack = idx.addTopography(stack).unmask(0)
+    
+    return ee.Image(stack).addBands(ref_poly_img)
