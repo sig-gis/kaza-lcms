@@ -11,7 +11,7 @@ model_inputs = {
 #   fourth, fifth, sixth, 
 #   TCAngleBG, tcAngleGW, tcAngleBW,
 #   tcDistBG, tcDistGW, tcDistBW
-'addTasselCap':False,
+'addTasselCap':True,
 ########################
 
 ### ANCILLARY VARIABLES ###

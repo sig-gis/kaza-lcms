@@ -40,7 +40,7 @@ def strat_sample(img,class_band,region,scale,n_points,class_values,class_points)
         classValues=class_values,
         classPoints=class_points,
         dropNulls=True, 
-        tileScale=8,  # increased from 4 to reduce computation time outs on generate_train_test().
+        tileScale=16,  # increased from 4 to reduce computation time outs on generate_train_test().
         geometries=True)
   
     return stratSample
