@@ -123,13 +123,19 @@ def main():
     
     if dry_run:
         if no_split:
-            print(f"would export: {asset_id_basename}_{str(year)}_pts")
+            print(f"would export (Asset): {asset_id_basename}_{str(year)}_pts")
             exit()
         else:
-            print(f"would export: {asset_id_basename}_{str(year)}_train|test_pts")
+            print(f"would export (Asset): {asset_id_basename}_{str(year)}_train|test_pts")
             exit()
     else:
-        generate_train_test(input_fc,year,asset_id_basename,n_points,class_values,class_points,no_split)
+        generate_train_test(input_fc_path=input_fc,
+                            year=year,
+                            output_basename=asset_id_basename,
+                            n_points=n_points,
+                            class_values=class_values,
+                            class_points=class_points,
+                            no_split=no_split)
 
 if __name__ == "__main__":
     main()

@@ -1,8 +1,9 @@
 import os
 import ee
 import argparse
-from src.utils.assemblage import maxProbClassifyFromImageCollection, export_img
+from src.utils.assemblage import maxProbClassifyFromImageCollection
 from src.utils.check_exists import check_exists
+from src.utils.exports import exportImgToAsset
     
 def main():
     ee.Initialize(project='wwf-sig')
@@ -54,7 +55,8 @@ def main():
     prims = ee.ImageCollection(input_path)
     max = maxProbClassifyFromImageCollection(prims)
     aoi = prims.first().geometry().bounds()
-    export_img(max,asset_id,aoi)
+    description = os.path.basename(asset_id).replace('/','_')
+    exportImgToAsset(img=max,desc=description,asset_id=asset_id,region=aoi,scale=10)
 
 if __name__ == "__main__":
    main()    

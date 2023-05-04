@@ -23,24 +23,21 @@ def maxProbClassifyFromImage(image): # remapNum,orginalNum
 def maxProbClassifyFromImageCollection(imagecollection):
   image = imagecollection.toBands()
   return (maxProbClassifyFromImage(image)
-          .add(1))
+          .add(1)).rename('LANDCOVER')
 
-# would need to do a remap if order is not alphanumeric
-# from = [0,1,2,3,4,5,6,7]
-# to = [1,2,3,4,5,6,7,8]
-
-def export_img(img,asset_id,aoi):
-    """Export image to Primitives imageCollection"""
+# reducing duplicate code, using exports.py module
+# def export_img(img,asset_id,aoi):
+#     """Export image to Primitives imageCollection"""
     
-    desc = os.path.basename(asset_id).replace('/','_') # f"{sensor}_{year}_LandCover_{aoi_s}"
-    task = ee.batch.Export.image.toAsset(
-          image=ee.Image(img),
-          description=desc,
-          assetId=asset_id, 
-          region=aoi, #.geometry().bounds(), 
-          scale=10, 
-          crs='EPSG:32734', 
-          maxPixels=1e13)
+#     desc = os.path.basename(asset_id).replace('/','_') # f"{sensor}_{year}_LandCover_{aoi_s}"
+#     task = ee.batch.Export.image.toAsset(
+#           image=ee.Image(img),
+#           description=desc,
+#           assetId=asset_id, 
+##           region=aoi, #.geometry().bounds(), 
+#           scale=10, 
+#           crs='EPSG:32734', 
+#           maxPixels=1e13)
 
-    task.start()
-    print(f"Export Started for {asset_id}")
+#     task.start()
+#     print(f"Export Started for {asset_id}")

@@ -2,6 +2,7 @@ import os
 import ee
 from src.utils.s2process import s2process_refdata
 from src.utils.check_exists import check_exists
+from src.utils.exports import exportTableToAsset
 ee.Initialize(project='wwf-sig')
  
 seed=10110
@@ -28,13 +29,13 @@ def pt_calc_prop(input_fc:ee.FeatureCollection,ref_label:str,multiplier:int):
   
   return class_values,class_points
 
-def strat_sample(img,region,n_points,class_values,class_points):
-    """Stratified sample from a multi-band image containing input and predictor bands"""
+def strat_sample(img,class_band,region,scale,n_points,class_values,class_points):
+    """Stratified sample from an image"""
     stratSample = ee.Image(img).stratifiedSample(
         numPoints=n_points,
-        classBand='LANDCOVER', 
+        classBand=class_band,
         region=region,
-        scale=10, 
+        scale=scale, 
         seed=seed, 
         classValues=class_values,
         classPoints=class_points,
@@ -55,20 +56,20 @@ def split_train_test(pts):
 
     return train, test
 
-def export_pts(pts:ee.FeatureCollection,asset_id):
-    """export train or test points to asset"""
-    if check_exists(asset_id) == 1:
-        task = ee.batch.Export.table.toAsset(pts,os.path.basename(asset_id).replace('/','_'),asset_id)
-        task.start()
-        print(f'Export started: {asset_id}')
-    else:
-        print(f"{asset_id} already exists")
+# def export_pts(pts:ee.FeatureCollection,asset_id:str,selectors:list):
+#     """export train or test points to asset"""
+#     if check_exists(asset_id) == 1:
+#         task = ee.batch.Export.table.toAsset(pts,os.path.basename(asset_id).replace('/','_'),asset_id,selectors)
+#         task.start()
+#         print(f'Export started: {asset_id}')
+#     else:
+#         print(f"{asset_id} already exists")
     
-    return
+#     return
 
 def generate_train_test(input_fc_path:str,year:int,output_basename:str,n_points:int,class_values:list,class_points:list,no_split:bool=False):
     """
-    extracts S2 composite data to generated train/test points within reference polygon footprints
+    extracts image composite data to generated train/test points within reference polygon footprints
     """
     # default n_points if none provided
     if n_points == None:
@@ -82,26 +83,29 @@ def generate_train_test(input_fc_path:str,year:int,output_basename:str,n_points:
     s2processed = s2process_refdata(ref_polys=input_fc,ref_label='LANDCOVER',ref_year=year)
 
     # extract sample points from s2 data within reference poly footprints
-    # debugging..
-    # print(n_points)
-    # print(class_values)
-    # print(class_points)
-    sampled_pts = strat_sample(s2processed,bbox,n_points,class_values,class_points)
+    sampled_pts = strat_sample(img=s2processed,
+                               class_band='LANDCOVER',
+                               region=bbox,
+                               scale=10,
+                               n_points=n_points,
+                               class_values=class_values,
+                               class_points=class_points)
 
     if no_split:
       assetid = f"{output_basename}_{str(year)}_pts"
-      export_pts(sampled_pts,assetid)
+      description = os.path.basename(assetid).replace('/','_')
+      exportTableToAsset(sampled_pts,description,assetid)
     
     else:
       #stratify sample points into train/test
       train,test = split_train_test(sampled_pts)
-      #debugging..
-      # print(train.aggregate_histogram('LANDCOVER').getInfo())
-      # print(test.aggregate_histogram('LANDCOVER').getInfo())
       
       # export train and test pts
       train_assetid = f"{output_basename}_{str(year)}_train_pts"
-      export_pts(train,train_assetid)
+      train_description = os.path.basename(train_assetid).replace('/','_')
+      exportTableToAsset(train,train_description,train_assetid)
 
       test_assetid = f"{output_basename}_{str(year)}_test_pts"
-      export_pts(test,test_assetid)
+      test_description = os.path.basename(test_assetid).replace('/','_')
+      exportTableToAsset(test,test_description,test_assetid)
+      

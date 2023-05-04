@@ -1,6 +1,10 @@
 #%%
+import os
 import ee
 import argparse
+import src.utils.sampling as sampling
+from src.utils.check_exists import check_exists
+import src.utils.exports as exports
 
 # ######################### #
 # Random Stratified Sample for Collect Earth Online  #
@@ -18,141 +22,12 @@ import argparse
 # ######################### #
 
 ## GLOBAL VARS
-
+scale = 10 # for Sentinel2
 # landCover is the named field which will hold each
-# class label
-landCover = 'LANDCOVER'
+# it is the class band in the image that is being sampled
+landCover = 'classification'
 
-# scale in m^2 for sampling
-scale = 30
-
-def export(e,mode):
-    # ######################### #
-    #             Export Options            
-    # ######################### #
-    
-
-    description = 'EOSS2020_derived' + str(year) #+ 'testGID'
-
-    # Drive Options,
-    folder = "KAZA-LC-trainingpts"
-
-    # Cloud Options,
-    bucket = "testBucket"
-
-    # Asset Option
-    partialPath = f"projects/wwf-sig/assets/kaza-lc/sample_pts/"
-    assetId = partialPath + description
-    
-    drive_task = ee.batch.Export.table.toDrive(collection=e, description=description+'-Drive', fileNamePrefix=description,
-    folder=folder, selectors='LON,LAT,PLOTID,SAMPLEID,'+landCover)
-
-    cloud_task = ee.batch.Export.table.toCloudStorage(collection=e, description=description+'-Bucket', fileNamePrefix=description,
-    bucket=bucket, selectors='LON,LAT,PLOTID,SAMPLEID,'+landCover),
-
-    asset_task = ee.batch.Export.table.toAsset(collection=e, description=description+'-Asset', assetId=assetId)
-
-    if mode=='drive':
-        drive_task.start()
-        print(f'Export to Drive: {description}')
-    elif mode=='cloud':
-        cloud_task.start()
-        print(f'Export to Cloud: {description}')
-    elif mode=='asset':
-        asset_task.start()
-        print(f'Export to Asset: {description}')
-    else:
-        drive_task.start()
-        cloud_task.start()
-        asset_task.start()
-        print(f'All 3 Export modes started: {description}')
-    return
-
-def sample(aoi,diff_per_class):
-    
-    # When using simple stratified sampling numPoints is,
-    # the number of points sampled per class,
-    numPoints = 1000
-
-    # The categorical image to sample,
-    # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
-        # aggregate LC2020 sub-classes together to make training points
-        
-        # Bare 60,61>>0
-        # Built 50>> 1
-        # Cropland 40>> 2
-        # Forest 110,120,210>> 3
-        # Grassland 31,32>> 4
-        # Shrubs 130,222,231,232>> 5
-        # Water 80,81>> 6
-        # Wetland 90,91,92>> 7
-        
-    LC2020 = ee.Image("projects/wwf-sig/assets/kaza-lc/Land_Cover_KAZA_2020_TFCA")
-
-    # typology is in both alphabetic and numeric order
-    image=LC2020.remap([31,32, # Grassland
-                        40, # Crop
-                        50, # Built
-                        60,61, # Bare
-                        80,81, # Water
-                        90,91,92, # Wetland
-                        110,120, # Forest
-                        130, # Shrub
-                        210, # Forest
-                        222,231,232 # Shrub
-                        ],
-                        
-                        [4,4, # Grassland
-                        2, # Crop
-                        1, # Built
-                        0,0, # Bare
-                        6,6, # Water
-                        7,7,7, # Wetland
-                        3,3, # Forest
-                        5, # Shrub
-                        3, # Forest
-                        5,5,5, # Shrub
-                        ]).rename(landCover)
-
-    # ######################### #
-    # Stratify by unequal number of points
-    # -------------------------------------------------- #
-    # If you would like to have differnt samples perclass
-    # set sampleClass to True then update classValues
-    # classPoints accordingly. If all classValues are NOT
-    # assigned numPoints will be used as their default
-    # number of points sampled.
-    # ######################### #
-    diff_per_class = True
-
-    ## @classValues : A list of class values for which to
-    # override the numPixels parameter. Must be the same
-    #  size as classPoints.
-    #
-    ## @classPoints : A list of the per-class maximum
-    # number of pixels to sample for each class in the
-    # classValues list. Must be the same size as
-    # classValues.
-    classValues = [0,1,2,3,4,5,6,7]
-    classPoints = [2000,2000,1000,1000,1000,1000,2000,2000]
-
-    if diff_per_class:
-        stratSample = image.stratifiedSample(
-        region=aoi.geometry(),
-        numPoints=numPoints,
-        classValues=classValues,
-        classPoints=classPoints,
-        scale=scale,
-        geometries=True)
-    else:
-        stratSample = image.stratifiedSample(
-        region=aoi.geometry(),
-        numPoints=numPoints,
-        scale=scale,
-        geometries=True)
-
-
-    def ceoClean(f):
+def ceoClean(f):
         # LON,LAT,PLOTID,SAMPLEID.,
         fid = f.id()
         coords = f.geometry().coordinates()
@@ -161,11 +36,6 @@ def sample(aoi,diff_per_class):
                     'PLOTID',fid,
                     'SAMPLEID',fid)
 
-    #print("First sample point :",ee.Feature(stratSample.map(ceoClean).first()).getInfo())
-   
-    e = stratSample.map(ceoClean)
-    
-    return e
 def plot_id_global(n,feat):
     """takes an index number (n) and adds it to current PLOTID property of a feature 
             to ensure PLOTID values are globally unique (necessary for multiple sets of AOI sampling)"""
@@ -179,46 +49,153 @@ def main():
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
-    description="Generate sample points for land cover modeling",
-    usage = "python 01sample_pts.py -y 2021"
+    description="Generate Sample Points From an ee.Image",
+    usage = "00sample_pts -i input/path/to/image -o output/path/to/sample_pts --n_points 100 --to_drive"
     )
     
     parser.add_argument(
-    "-y",
-    "--year",
-    type=int,
+    "-i",
+    "--input",
+    type=str,
     required=True,
-    help="value for 'year' property in the exported dataset"
+    help="asset path to image you are sampling from"
+    )
+
+    parser.add_argument(
+    "-o",
+    "--output",
+    type=str,
+    required=False,
+    help="The output asset path basename for export. Default: 'projects/wwf-sig/assets/kaza-lc/sample_pts/[input_fc_basename]_labelOnly' "
     )
     
+    parser.add_argument(
+    "--n_points",
+    type=int,
+    required=False,
+    help="Number of points per class. Default: 200"
+    )
+
+    parser.add_argument(
+    '--class_values', 
+    type=int, 
+    nargs='+',
+    required=False,
+    help="list of unique LANDCOVER values in input Feature Collection"
+    )
+
+    parser.add_argument(
+    "--class_points",
+    type=int,
+    nargs='+',
+    required=False,
+    help="number of samples to collect per class"
+    )
+    
+    parser.add_argument(
+    "-ta",
+    "--to_asset",
+    dest="to_asset",
+    action="store_true",
+    help="exports to GEE Asset only",
+    )
+    
+    parser.add_argument(
+    "-td",
+    "--to_drive",
+    dest="to_drive",
+    action="store_true",
+    help="exports to Google Drive only",
+    )
+    parser.add_argument(
+    "-d",
+    "--dry_run",
+    dest="dry_run",
+    action="store_true",
+    help="goes through checks and prints output asset path but does not export.",
+    )
+
     args = parser.parse_args()
     
-    year = args.year#2021
+    input_path = args.input
+    output = args.output
+    n_points = args.n_points
+    class_values = args.class_values
+    class_points = args.class_points
+    to_asset = args.to_asset
+    to_drive = args.to_drive
+    dry_run = args.dry_run
+
+    if output:
+        asset_id_basename=output # user has provided full asset id basename
+        output_folder = os.path.dirname(asset_id_basename)
+    else:
+        output_folder = 'projects/wwf-sig/assets/kaza-lc/sample_pts' #use default folder and asset_id basename for _train and _test exports
+        asset_id_basename = f"{output_folder}/{os.path.basename(input_path)}_sample_pts"
     
-    # Paramters
-    aoi = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Hwange")
-    aoi2 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mufunta")
-    aoi3 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Mulobesi")
-    aoi4 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/SNMC")
-    aoi5 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Sichifulo")
-    aoi6 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Zambezi")
-    aoi7 = ee.FeatureCollection("projects/wwf-sig/assets/kaza-lc/aoi/Binga")
-    # optional: add extra aoi's below then add to aoi_list
-    # aoi8 = ee.FeatureCollection("path/to/collection")
-    aoi_list = [aoi,aoi2,aoi3,aoi4,aoi5,aoi6,aoi7]
+    assert check_exists(input_path) == 0, f"Check input FeatureCollection exists: {input_path}"
+    assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
     
-    # Have multiple AOIs to generate samples for, want to ensure each AOI gets same amount of training pts
-    all_s = ee.FeatureCollection(sample(aoi_list[0],diff_per_class=True)) # use first aoi to start the collection for all
-    counter=1
-    for a in aoi_list[1:]:
-        s = sample(a,diff_per_class=True)
-        aoi_id = str(counter) # make an AOI index to append to PLOTID 
-        s = s.map(lambda f: plot_id_global(aoi_id,f)) # make PLOT ID globally unique using AOI index
-        all_s = ee.FeatureCollection(all_s).merge(s)
-        counter = counter+1
-    export(all_s,'asset')
-    export(all_s,'drive')
-    print(f'Total training pts:{ee.FeatureCollection(all_s.size()).getInfo()}')
-#%%
+    # value checks if class_values and class_points args are both provided
+    if ((class_values != None) and (class_points != None)):
+        
+        # class_values and class_points must be equal length
+        if len(class_values) != len(class_points):
+            print(f"Error: class_points and class_values are of unequal length: {class_values} {class_points}")
+            exit()
+
+    # if only one is provided, error 
+    elif (class_values != None and class_points == None) or (class_values == None and class_points != None):
+        print(f"Error: class_values and class_points args are codependent, provide both or neither. class_values:{class_values}, class_points:{class_points}")
+    
+    # if neither provided, n_points must be provided, otherwise we set a default n_points value 
+    else:
+        if n_points != None:
+            pass
+        else:
+            print("Warning: Defaulting to equal allocation of default n. Set n_points or class_values and class_points to control sample allocation.")
+    
+    
+    img = ee.Image(input_path)
+    bbox = img.geometry().bounds() # region
+
+    samples = sampling.strat_sample(img=img,
+                                    class_band=landCover,
+                                    region=bbox,
+                                    scale=scale,
+                                    n_points=n_points,
+                                    class_values=class_values,
+                                    class_points=class_points).map(ceoClean)
+
+    # set up export info
+    description = os.path.basename(asset_id_basename).replace('/','_')
+    drive_folder = 'kaza-lc'
+    drive_desc = description+'-Drive'
+    asset_desc = description+'-Asset'
+    selectors = 'LON,LAT,PLOTID,SAMPLEID,'+landCover
+    # will export to drive or asset if you specify one or the other
+    if to_asset==True and to_drive==False:
+        if dry_run:
+            print(f"would export (Asset): {asset_id_basename}")
+            exit()
+        else:
+            exports.exportTableToAsset(samples,asset_desc,asset_id_basename)
+    
+    elif to_drive==True and to_asset==False:
+        if dry_run:
+            print(f"would export (Drive): {drive_folder}/{drive_desc}")
+            exit()
+        else:
+            exports.exportTableToDrive(samples,drive_desc,drive_folder,selectors)
+    
+    else: # export both ways if neither or both of the --to_drive and --to_asset flags are given
+        if dry_run:
+            print(f"would export (Asset): {asset_id_basename}")
+            print(f"would export (Drive): {drive_folder}/{drive_desc}")
+            exit()
+        else:
+            exports.exportTableToAsset(samples,asset_desc,asset_id_basename)
+            exports.exportTableToDrive(samples,drive_desc,drive_folder,selectors)
+        
 if __name__ == "__main__":
     main()
