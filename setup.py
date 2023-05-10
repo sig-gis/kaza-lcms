@@ -26,5 +26,5 @@ setup(
             "04generate_LC = src.04generate_LC:main",
         ]
     },
-    install_requires=["earthengine-api"],
+    install_requires=["earthengine-api", "pandas"],
 )

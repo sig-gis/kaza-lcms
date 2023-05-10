@@ -11,14 +11,14 @@ model_inputs = {
 #   fourth, fifth, sixth, 
 #   TCAngleBG, tcAngleGW, tcAngleBW,
 #   tcDistBG, tcDistGW, tcDistBW
-'addTasselCap':True,
+'addTasselCap':False,
 ########################
 
 ### ANCILLARY VARIABLES ###
 # Include JRC Water Variables? 
 # will add these variables: 
 #   occurrence, change_abs, change_norm, seasonality, transition, max_extent
-'addJRCWater': True,
+'addJRCWater': False,
 
 # Include Topography Variables?
 # will add these variables: 

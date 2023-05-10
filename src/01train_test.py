@@ -12,27 +12,35 @@ def main():
     )
     
     parser.add_argument(
-    "-i",
+    "-fc",
     "--input_fc",
     type=str,
     required=True,
-    help="The full asset path to the reference polygon FeatureCollection"
+    help="The full asset path to the reference polygon ee.FeatureCollection"
     )
     
     parser.add_argument(
-    "-y",
-    "--year",
-    type=int,
+    "-im",
+    "--input_img",
+    type=str,
     required=True,
-    help="The year to generate input data for"
+    help="The full asset path to the input stack ee.Image"
     )
+    
+    # parser.add_argument(
+    # "-y",
+    # "--year",
+    # type=int,
+    # required=True,
+    # help="The year to generate input data for"
+    # )
 
     parser.add_argument(
     "-o",
     "--output",
     type=str,
     required=False,
-    help="The output asset path basename for export. Default: 'projects/wwf-sig/assets/kaza-lc/sample_pts/[input_fc_basename]_[train|test]' "
+    help="The output asset path basename for export. Default: 'projects/wwf-sig/assets/kaza-lc/sample_pts/[input_fc_basename]_[input_img_basename]_[train|test]' "
     )
 
     parser.add_argument(
@@ -78,7 +86,8 @@ def main():
     args = parser.parse_args()
     
     input_fc = args.input_fc
-    year = args.year
+    input_img = args.input_img
+    # year = args.year
     output = args.output
     n_points = args.n_points
     class_values = args.class_values
@@ -86,16 +95,16 @@ def main():
     dry_run = args.dry_run
     no_split = args.no_split
 
-    if output:
-        asset_id_basename=output # user has provided full asset id basename
+    if output: # user has provided full asset id basename
+        asset_id_basename=output 
         output_folder = os.path.dirname(asset_id_basename)
     else:
         output_folder = 'projects/wwf-sig/assets/kaza-lc/sample_pts' #use default folder and asset_id basename for _train and _test exports
-        asset_id_basename = f"{output_folder}/{os.path.basename(input_fc)}"
+        asset_id_basename = f"{output_folder}/{os.path.basename(input_fc)}_{os.path.basename(input_img)}"
     
     assert check_exists(input_fc) == 0, f"Check input FeatureCollection exists: {input_fc}"
     assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
-    assert len(str(year)) == 4, "year should conform to YYYY format"
+    # assert len(str(year)) == 4, "year should conform to YYYY format"
     
     # value checks if class_values and class_points args are both provided
     if ((class_values != None) and (class_points != None)):
@@ -117,20 +126,22 @@ def main():
     # if neither provided, n_points must be provided, otherwise we set a default n_points value 
     else:
         if n_points != None:
-            pass
+            n_points=100
         else:
-            print("Warning: Defaulting to equal allocation of default n. Set n_points or class_values and class_points to control sample allocation.")
+            print(f"Warning: Defaulting to equal allocation of default n ({n_points}). Set n_points or class_values and class_points to control sample allocation.")
     
     if dry_run:
         if no_split:
-            print(f"would export (Asset): {asset_id_basename}_{str(year)}_pts")
+            print(f"would export (Asset): {asset_id_basename}_pts")
             exit()
         else:
-            print(f"would export (Asset): {asset_id_basename}_{str(year)}_train|test_pts")
+            print(f"would export (Asset): {asset_id_basename}_train|test_pts")
             exit()
     else:
-        generate_train_test(input_fc_path=input_fc,
-                            year=year,
+        fc = ee.FeatureCollection(input_fc)
+        image = ee.Image(input_img)
+        generate_train_test(input_fc=fc,
+                            input_img=image,
                             output_basename=asset_id_basename,
                             n_points=n_points,
                             class_values=class_values,

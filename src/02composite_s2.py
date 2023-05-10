@@ -1,6 +1,6 @@
 import ee
 import os
-from src.utils.s2process import s2process
+from src.utils.s2process import s2process, s2process_refdata
 from src.utils.exports import exportImgToAsset
 from src.utils.check_exists import check_exists
 import argparse
@@ -37,6 +37,14 @@ def main():
     )
 
     parser.add_argument(
+    "-p",
+    "--polygons",
+    dest="polygons",
+    action="store_true",
+    help="set this flag if your aoi (--aoi) is a multi-polygon dataset",
+    )
+    
+    parser.add_argument(
     "-d",
     "--dry_run",
     dest="dry_run",
@@ -49,6 +57,7 @@ def main():
     year = args.year
     aoi = args.aoi
     output = args.output
+    polygons = args.polygons
     dry_run = args.dry_run
 
     if '/' in aoi:
@@ -67,7 +76,8 @@ def main():
     
     # check inputs 
     aoi = ee.FeatureCollection(aoi_path)
-    aoi_buffered = aoi.geometry().buffer(1000)
+    # # trying to get this to work for polygon geoms not one contiguous geometry
+    # aoi_buffered = aoi.geometry().buffer(1000) 
     assert check_exists(aoi_path) == 0, f"Check aoi exists: {aoi_path}"
     assert check_exists(outputbase) == 0, f"Check output folder exsits: {outputbase}"
     assert len(str(year)) == 4, "year should conform to YYYY format"
@@ -77,8 +87,17 @@ def main():
         if dry_run:
             print(f"would export: {asset_id}")
         else:
-            output = s2process(aoi,year,year)
-            exportImgToAsset(img=output,desc=os.path.basename(asset_id),asset_id=asset_id,region=aoi_buffered,scale=10)
+            if polygons:
+                # use s2process_refdata() to only process satellite data inside polygons, exporting to polygons' minimum bbox
+                region = aoi.geometry().bounds()
+                output = s2process_refdata(aoi,'LANDCOVER',year)
+                exportImgToAsset(img=output,desc=os.path.basename(asset_id),asset_id=asset_id,region=region,scale=10)
+ 
+            else:
+                # use s2process() to process all satellite data inside the aoi, exporting to a 1km buffer of the aoi
+                region = aoi.geometry().buffer(1000)
+                output = s2process(aoi,year,year)
+                exportImgToAsset(img=output,desc=os.path.basename(asset_id),asset_id=asset_id,region=region,scale=10)
     else:
         print(f"Image already exsits: {asset_id}")
         

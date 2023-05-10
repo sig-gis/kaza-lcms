@@ -135,8 +135,8 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
     # add topography variables if desired    
     if model_inputs['addTopography']:
          stack = idx.addTopography(stack).unmask(0)
-    
-    return ee.Image(stack)
+    # trying to see if we can get s2process to work for multi-polygon and polygon geometries without any logical if-else
+    return ee.Image(stack)#.clip(aoi)
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
     """
@@ -182,4 +182,4 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
     if model_inputs['addTopography']:
          stack = idx.addTopography(stack).unmask(0)
     
-    return ee.Image(stack).addBands(ref_poly_img)
+    return ee.Image(stack)#.updateMask(ref_poly_img)#.addBands(ref_poly_img)
