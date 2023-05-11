@@ -22,12 +22,21 @@ def main():
     )
     
     parser.add_argument(
-        "-t",
-        "--training_data",
-        type=str,
-        required=True,
-        help = "full asset path to training data"
+    "-t",
+    "--training_data",
+    type=str, 
+    nargs='+',
+    required=True,
+    help="full asset path(s) to training point dataset(s)"
     )
+    
+    # parser.add_argument(
+    #     "-t",
+    #     "--training_data",
+    #     type=str,
+    #     required=True,
+    #     help = "full asset path to training data"
+    # )
     
     parser.add_argument(
         "-o",
@@ -48,17 +57,17 @@ def main():
     args = parser.parse_args()
 
     input_stack_path = args.input_stack
-    train_path = args.training_data
+    train_paths = args.training_data
     output = args.output
     dry_run = args.dry_run
 
     # Run Checks
-
-    # Check Input Stack exists
+    # Check input stack exists
     assert check_exists(input_stack_path) == 0, f"Check input_stack asset exists: {input_stack_path}"
     
-    # Check Reference data exists
-    assert check_exists(train_path) == 0, f"Check training_data asset exists: {train_path}"
+    # Check training data exists
+    for train_path in train_paths:
+        assert check_exists(train_path) == 0, f"Check training_data asset exists: {train_path}"
     
     # Check -o output value will work if provided 
     # you have to either provide full asset path to output asset or not provide -o value at all to use default output location 
@@ -80,26 +89,37 @@ def main():
         raise AssertionError(f"Primitives ImageCollection already exists: {img_coll_path}")
 
     # Construct local 'metrics' folder path from -o output or a default name if not provided
-    cwd = os.path.dirname(os.getcwd())
+    cwd = os.getcwd()
     metrics_path = os.path.join(cwd,"metrics",os.path.basename(img_coll_path))
-    # Check that LC strata in strata.py matches LANDCOVER values of input reference_data 
-    ref_data_values = ee.FeatureCollection(train_path).aggregate_array('LANDCOVER').distinct().getInfo()
 
     # print output locations and exit
     if dry_run: 
-        print(f"Would Export Primitives ImageCollection to: {img_coll_path}")
-        print(f"Would Export Model Metrics to: {metrics_path}")
+        print(f"Would Export Primitives ImageCollection to: {img_coll_path}\n")
+        print(f"Would Export Model Metrics to: {metrics_path}\n")
         exit()
     
     else:
         # make local metrics folder
         if not os.path.exists(metrics_path):
             Path(metrics_path).mkdir(parents=True)
-        print(f"Metrics will be exported to: {metrics_path}")
+        print(f"Metrics will be exported to: {metrics_path}\n")
         
-        # run analysis
         input_stack = ee.Image(input_stack_path)
-        primitives_to_collection(input_stack,train_path,img_coll_path,metrics_path)
+        
+        if len(train_paths) > 1:
+            print(f'Merging training datasets together: {train_paths}\n')
+            # we must construct the ee.FeatureCollection's and merge them together
+            training_data = ee.FeatureCollection(train_paths[0])
+            for i in train_paths[1:]:
+                training_data = training_data.merge(i)
+        else:
+            training_data = ee.FeatureCollection(train_paths[0])
+        
+        # run primitives models
+        primitives_to_collection(input_stack=input_stack,
+                                 training_pts=training_data,
+                                 output_ic=img_coll_path,
+                                 metrics_path=metrics_path)
 
 if __name__=="__main__":
     main()

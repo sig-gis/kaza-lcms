@@ -50,12 +50,12 @@ def main():
 
     parser = argparse.ArgumentParser(
     description="Generate Sample Points From an ee.Image",
-    usage = "00sample_pts -i input/path/to/image -o output/path/to/sample_pts --n_points 100 --to_drive"
+    usage = "00sample_pts -im input/path/to/image -o output/path/to/sample_pts --n_points 100 --to_drive"
     )
     
     parser.add_argument(
-    "-i",
-    "--input",
+    "-im",
+    "--input_image",
     type=str,
     required=True,
     help="asset path to image you are sampling from"
