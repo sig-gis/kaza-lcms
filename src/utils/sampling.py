@@ -100,7 +100,7 @@ def strat_sample_no_extraction(collection:ee.FeatureCollection,class_band:str,sc
         
 
 # working on optimized stratified sample function not using .stratifiedSample()
-def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale:int,class_band:str,seed:int,
+def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale:int,projection:str,class_band:str,seed:int,
                               class_values:list,class_points:list):
   """
   Generates stratified random sample pts from reference polygons, then extracts raster data to the points.
@@ -109,7 +109,7 @@ def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale
   # zip class_values and class_points together so they are easily accessible by map() index
   zip_value_n = ee.List(class_values).zip(ee.List(class_points))
   
-  # done for each class and its desired n_points
+  # done for each class_value and its desired # of class_points
   def do_by_class(value_n):
     class_value = ee.List(value_n).get(0)
     n_points = ee.List(value_n).get(1)
@@ -122,7 +122,8 @@ def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale
     # extract raster data to the points and try to take specific n_points specified
     rawSample_fromPts = ee.Image(img).sampleRegions(
           collection=random_pts, 
-          scale=scale, 
+          scale=scale,
+          projection=projection, 
           tileScale=16, 
           geometries=True).randomColumn().limit(n_points,'random')
     

@@ -135,8 +135,8 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
     # add topography variables if desired    
     if model_inputs['addTopography']:
          stack = idx.addTopography(stack).unmask(0)
-    # trying to see if we can get s2process to work for multi-polygon and polygon geometries without any logical if-else
-    return ee.Image(stack)#.clip(aoi)
+
+    return ee.Image(stack)
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
     """
@@ -176,10 +176,12 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
     
     # add JRC variables if desired
     if model_inputs['addJRCWater']:
-        stack = idx.addJRC(stack).unmask(0)
+        stack = idx.addJRC(stack).unmask(0) # 0s are valid values for these variables
     
     # add topography variables if desired    
     if model_inputs['addTopography']:
-         stack = idx.addTopography(stack).unmask(0)
+         stack = idx.addTopography(stack).unmask(0) # 0s are valid values for these variables
     
-    return ee.Image(stack)#.updateMask(ref_poly_img)#.addBands(ref_poly_img)
+    return ee.Image(stack).updateMask(ref_poly_img)
+    # have to update mask again because of the unmask(0)s for JRC and Topo.
+    # ensures all pixels outside of reference polygons are masked
