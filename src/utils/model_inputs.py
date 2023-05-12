@@ -1,4 +1,5 @@
-#%%
+# CHOOSE YOUR INPUT FEATURES 
+# note: spectral bands [blue,green,red,nir,swir1,swir2] are included by default
 model_inputs = {
 
 ### SPECTRAL INDICES ###
@@ -43,6 +44,5 @@ model_inputs = {
                       'swir1':
                       {'start':1, # in Julian Days (Day of Year)
                       'end':365}, 
-}
-############################
+                    }
 }

@@ -259,7 +259,7 @@ class indices():
 		return [elem for elem in covariateList if elem not in bands]
 
 	def renameBands(self,image,prefix):
-		'rename bands with prefix'
+		""" renames bands with prefix """
 		
 		bandnames = image.bandNames()
 
@@ -275,7 +275,7 @@ class indices():
 
 
 def returnCovariates(img):
-	
+	"""Workflow for computing Landsat and covariates. bands and covariates are hardcoded inside the function."""
 	# hard coded for now
 	bands = ['blue','green','red','nir','swir1', 'swir2']	
 	bandLow = ['p20_blue','p20_green','p20_red','p20_nir','p20_swir1', 'p20_swir2']
@@ -323,8 +323,8 @@ def returnCovariates(img):
 
 def returnCovariatesFromOptions(img):
 	"""
-	Compute image covariates according to user settings.
-	feature engineering options are set by user in src/model_inputs.py and imported at top of this module
+	Workflow for computing image covariates according to user settings defined in src.utls.model_inputs.py
+	model_inputs is a settings dictionary that is imported at top of this file.
 	"""
 	covariates = model_inputs['indices']
 		

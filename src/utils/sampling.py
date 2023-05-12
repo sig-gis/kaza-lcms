@@ -4,7 +4,8 @@ import ee
 ee.Initialize(project='wwf-sig')
  
 def distanceFilter(pts,distance):
-    withinDistance = distance; 
+    """Filter Points within a FeatureCollection by a minimum distance threshold"""
+    withinDistance = distance
 
     ## From the User Guide: https:#developers.google.com/earth-engine/joins_spatial
     ## add extra filter to eliminate self-matches
@@ -42,14 +43,14 @@ def distanceFilter(pts,distance):
         return list
     
     ids = spatialJoined.iterate(iterator_f,ee.List([]))
-    ##print("Removal candidates' IDs", ids);
 
     # Clean up 
     cleaned_pts = pts.filter(ee.Filter.inList('system:index', ids).Not())
     return cleaned_pts
 
 def pt_calc_prop(input_fc:ee.FeatureCollection,ref_label:str,multiplier:int):
-  # automating different sampling allocations is a little complex using refernce polygons, may not be worthwhile ATM..
+  # not being used.. automating different sampling allocation strategies is a little complex 
+  # using refernce polygons and may not be worthwhile ATM..
   """
   Proportional allocation; takes a static integer multiplier and applies to each n of polygons per class
   args:
@@ -71,9 +72,20 @@ def pt_calc_prop(input_fc:ee.FeatureCollection,ref_label:str,multiplier:int):
   return class_values,class_points
 
 def strat_sample_no_extraction(collection:ee.FeatureCollection,class_band:str,scale:int,seed:int,
-                               class_values:list=None,class_points:list=None,no_split=False):
+                               class_values:list=None,class_points:list=None):
     """
     Generates stratified random sample pts from reference polygons. Does not extract raster data to the points. 
+    
+    args:
+      collection (ee.FeatureCollection): reference polygons FeatureCollection
+      class_band (str): property name of the reference (i.e. 'LANDCOVER')
+      scale (int): resolution to sample the grid at
+      seed (int): random seed
+      class_values (list): unique reference labels (e.g. [1,2,3,4])
+      class_points (list): number of points to sample per label (e.g. [100,200,100,200])
+    returns:
+      ee.FeatureCollection of sample points 
+        They will contain the properties inherited from the reference polygons and a 'random' property
     """
     # zip class_values and class_points together so they are easily accessible by map() index
     zip_value_n = ee.List(class_values).zip(ee.List(class_points))
@@ -103,8 +115,21 @@ def strat_sample_no_extraction(collection:ee.FeatureCollection,class_band:str,sc
 def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale:int,projection:str,class_band:str,seed:int,
                               class_values:list,class_points:list):
   """
-  Generates stratified random sample pts from reference polygons, then extracts raster data to the points.
-  """
+    Generates stratified random sample pts from reference polygons with all bands from input image extracted
+    
+    args:
+      img (ee.Image): image whose bands will be extracted to the sample points
+      collection (ee.FeatureCollection): reference polygons FeatureCollection
+      class_band (str): property name of the reference (i.e. 'LANDCOVER')
+      scale (int): resolution to sample the grid at
+      seed (int): random seed
+      class_values (list): unique reference labels (e.g. [1,2,3,4])
+      class_points (list): number of points to sample per label (e.g. [100,200,100,200])
+    returns:
+      ee.FeatureCollection of sample points 
+        They will contain the properties inherited from the reference polygons, 
+          a 'random' property, and all bands from the image as properties.
+    """
   
   # zip class_values and class_points together so they are easily accessible by map() index
   zip_value_n = ee.List(class_values).zip(ee.List(class_points))
@@ -137,8 +162,10 @@ def strat_sample_w_extraction(img:ee.Image,collection:ee.FeatureCollection,scale
 
 def strat_sample(img,class_band,region,scale,seed,n_points,class_values,class_points):
     """
-    Stratified sample from an image using GEE's .stratfiedSample()
-    Note: This function has been found to be less efficient on EECUs and Memory than those defined above as workarounds.
+    A wrapper for ee.Image.stratifiedSample()
+    Note: This function has been found to be less efficient on EECUs and Memory than those defined above.
+            Use the strat_sample_w_extraction for training data generation
+            strat_sample_no_extraction can be used for testing data generation (predictor bands not required)
     """
     stratSample = ee.Image(img).stratifiedSample(
         numPoints=n_points,
@@ -164,51 +191,4 @@ def split_train_test(pts,seed):
     test = featColl.filter(filt.Not())
 
     return train, test
-
-# think we'll archive this, chaining together functions and asset construction can be done in CLI tools
-# def generate_train_test(input_fc:ee.FeatureCollection,input_img:ee.Image,output_basename:str,
-#                         seed:int,n_points:int,class_values:list,class_points:list,no_split:bool=False):
-#     """
-#     generates random train/test points from provided image within provided reference polygons
-#     """
-#     # # default n_points if none provided
-#     # if n_points == None:
-#     #    n_points = 20
-
-#     input_fc = ee.FeatureCollection(input_fc) # provide a polygon FC
-#     img = ee.Image(input_img)
-#     bbox = input_fc.geometry().bounds() # region
-    
-#     # process s2 data within reference poly footprints
-#     # s2processed = s2process_refdata(ref_polys=input_fc,ref_label='LANDCOVER',ref_year=year)
-    
-
-#     # extract sample points from s2 data within reference poly footprints
-#     sampled_pts = strat_sample_w_extraction(
-#        img=img,
-#        collection=input_fc,
-#        scale=10,
-#        class_band='LANDCOVER',
-#        seed=seed,
-#        n_points=n_points,
-#        class_values=class_values,
-#        class_points=class_points)
-
-#     if no_split:
-#       assetid = f"{output_basename}_pts"
-#       description = os.path.basename(assetid).replace('/','_')
-#       exportTableToAsset(sampled_pts,description,assetid)
-    
-#     else:
-#       #stratify sample points into train/test
-#       train,test = split_train_test(sampled_pts)
-      
-#       # export train and test pts
-#       train_assetid = f"{output_basename}_train_pts"
-#       train_description = os.path.basename(train_assetid).replace('/','_')
-#       exportTableToAsset(train,train_description,train_assetid)
-
-#       test_assetid = f"{output_basename}_test_pts"
-#       test_description = os.path.basename(test_assetid).replace('/','_')
-#       exportTableToAsset(test,test_description,test_assetid)
       

@@ -4,6 +4,7 @@ from src.utils.check_exists import check_exists
 ee.Initialize(project='wwf-sig')
 
 def exportImgToAsset(img,desc,asset_id,region,scale):
+    """Export Image to GEE Asset"""
     export_region = region
     task = ee.batch.Export.image.toAsset(
         image=ee.Image(img),
@@ -18,7 +19,7 @@ def exportImgToAsset(img,desc,asset_id,region,scale):
     return
 
 def exportTableToAsset(collection:ee.FeatureCollection,description:str,asset_id:str):
-    """export FeatureCollection to GEE Asset"""
+    """Export FeatureCollection to GEE Asset"""
     if check_exists(asset_id) == 1:
         task = ee.batch.Export.table.toAsset(
             collection=collection,

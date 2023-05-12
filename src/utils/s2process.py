@@ -4,6 +4,7 @@ from src.utils import harmonics
 from src.utils.model_inputs import model_inputs
 idx = covariates.indices()
 
+# Global S2 Processing Parameters
 CLOUD_FILTER = 70
 CLD_PRB_THRESH = 40
 NIR_DRK_THRESH = 0.15
@@ -105,7 +106,21 @@ def add_covariates(img):
     return img
 
 def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
-    """Computes preprocessed Sentinel-2 multi-band composite within an AOI footprint"""
+    """
+    Processes an annual Sentinel-2 SR multi-band composite within an AOI footprint polygon
+
+    Uses model_inputs settings dictionary stored at src/utils/model_inputs.py and imported at top of file 
+        to compute specific indices and time series features
+
+    args:
+        aoi (ee.FeatureCollection): AOI footprint polygon FC
+        start_year (int): start year
+        end_year (int): end year
+    
+    returns:
+        ee.Image raster stack of S2 bands and covariates within AOI polygon
+
+    """
     start_date = ee.Date.fromYMD(start_year,1,1)
     end_date = ee.Date.fromYMD(end_year,12,31)
     
@@ -116,23 +131,23 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
                 )
     
-    # compute spectral indices per image from model_inputs settings
+    # compute spectral indices per image (set in model_inputs settings) 
     addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
     
-    # compute desired percentile composites on bands/indices
+    # compute desired percentile composites on bands/indices (set in model_inputs settings) 
     percentile_options = model_inputs['percentileOptions']
     percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
     
-    # compute harmonics if desired
+    # compute harmonics if desired (set in model_inputs settings) 
     if model_inputs['addHarmonics']:
         harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
     stack = ee.Image.cat([percentiles,harmonics_features])
     
-    # add JRC variables if desired
+    # add JRC variables if desired (set in model_inputs settings) 
     if model_inputs['addJRCWater']:
         stack = idx.addJRC(stack).unmask(0)
     
-    # add topography variables if desired    
+    # add topography variables if desired (set in model_inputs settings)     
     if model_inputs['addTopography']:
          stack = idx.addTopography(stack).unmask(0)
 
@@ -140,14 +155,16 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
     """
-    Computes preprocessed Sentinel-2 multi-band composite within reference polygon footprints, 
+    Processes an annual Sentinel-2 SR multi-band composite within reference polygon footprints
+    Uses model_inputs settings dictionary stored at src/utils/model_inputs.py and imported at top of file 
+        to compute specific indices and time series features
     
     args: 
     ref_polys: reference polygon FeatureCollection
     ref_label: predictor property name the model needs (e.g. 'LANDCOVER')
-    ref_year: year that hte polygons were interpreted for, controls the time period of the s2 composite
+    ref_year: year that the polygons were interpreted for, controls time period of s2 imagery used in the composite
     
-    Returns: ee.Image raster stack of S2 bands and predictor band within footprints of reference polygons
+    Returns: ee.Image raster stack of S2 bands and covariates within footprints of reference polygons
     """
     start_date = ee.Date.fromYMD(ref_year,1,1)
     end_date = ee.Date.fromYMD(ref_year,12,31)
@@ -165,20 +182,20 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
     # compute spectral indices per image from model_inputs settings
     addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
     
-    # compute desired percentile composites on bands/indices
+    # compute desired percentile composites on bands/indices from model_inputs settings
     percentile_options = model_inputs['percentileOptions']
     percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
     
-    # compute harmonics if desired
+    # compute harmonics if desired (set in model_inputs settings)
     if model_inputs['addHarmonics']:
         harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
     stack = ee.Image.cat([percentiles,harmonics_features])
     
-    # add JRC variables if desired
+    # add JRC variables if desired (set in model_inputs settings)
     if model_inputs['addJRCWater']:
         stack = idx.addJRC(stack).unmask(0) # 0s are valid values for these variables
     
-    # add topography variables if desired    
+    # add topography variables if desired (set in model_inputs settings) 
     if model_inputs['addTopography']:
          stack = idx.addTopography(stack).unmask(0) # 0s are valid values for these variables
     

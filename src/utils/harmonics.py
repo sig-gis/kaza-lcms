@@ -1,19 +1,21 @@
-# harmonics.py
 import ee
 import math
 from src.utils.model_inputs import model_inputs
 
 ee.Initialize(project='wwf-sig')
 
-
 def addHarmonicTerms(image):
+    """add Time bands to image"""
     timeRadians = image.select("t").multiply(2 * math.pi)
     return image.addBands(timeRadians.cos().rename("cos")).addBands(
         timeRadians.sin().rename("sin")
     )
 
-
 def calculateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String):
+    """
+    Calculate harmonic coefficients (phase and amplitude) off of an ImageCollection
+    dependent: band that you fit the harmonic model for, must be contained in ImageCollection
+    """
     harmonicIndependents = ee.List(["constant", "t", "cos", "sin"])
     #  Add harmonic terms as new image bands.
     harmonicLandsat = imageCollection.map(addHarmonicTerms)
@@ -45,7 +47,7 @@ def calculateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String)
 
 
 def harmonicRGB(harmonics: ee.Image):
-    # // Use the HSV to RGB transform to display phase and amplitude
+    """Use the HSV to RGB transform to display phase and amplitude"""
     amplitude = harmonics.select(".*amplitude")
     phase = harmonics.select(".*phase")
 
@@ -59,6 +61,10 @@ def harmonicRGB(harmonics: ee.Image):
 
 
 def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
+    """
+    Add time constant to images in an ImageCollection
+    timeField: time stamp property name (typically is the 'system:time_start' property of an image)
+    """
     def _(image, timeField):
         # // Compute time in fractional years since the epoch.
         date = ee.Date(image.get(timeField))
@@ -71,6 +77,12 @@ def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
     return imageCollection.map(lambda i: _(i, timeField))
 
 def doHarmonicsFromOptions(imgColl:ee.ImageCollection):
+    """
+    calculateHarmonic function but using user inputs defined in src.utils.model_inputs 
+        to compute harmonics for each band specified
+    
+    model_inputs is a user settings dictionary that is imported at top of this file. 
+    """
     imgColl = ee.ImageCollection(imgColl)
 
     # construct EE dict from model_inputs python dict

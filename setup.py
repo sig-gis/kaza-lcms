@@ -20,8 +20,8 @@ setup(
     entry_points={
         "console_scripts": [
             "00sample_pts = src.00sample_pts:main",
-            "01train_test = src.01train_test:main",
-            "02composite_s2 = src.02composite_s2:main",
+            "01composite_s2 = src.01composite_s2:main",
+            "02train_test = src.02train_test:main",
             "03RFprimitives = src.03RFprimitives:main",
             "04generate_LC = src.04generate_LC:main",
         ]
