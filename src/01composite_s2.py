@@ -9,7 +9,7 @@ def main():
     ee.Initialize(project='wwf-sig')
     parser = argparse.ArgumentParser(
     description="Create Sentinel-2 Composite for an AOI or reference polygons",
-    usage = "python 02composite_s2.py -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
+    usage = "01composite_s2 -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
     )
     
     parser.add_argument(

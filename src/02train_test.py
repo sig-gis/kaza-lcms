@@ -10,7 +10,7 @@ ee.Initialize(project='wwf-sig')
 def main():
     parser = argparse.ArgumentParser(
     description="Extract Train and Test Point Data from an Input Image within Reference Polygon Areas",
-    usage = """01train_test -rp path/to/reference_polygon_fc -im path/to/input/stack 
+    usage = """02train_test -rp path/to/reference_polygon_fc -im path/to/input/stack 
                 -o unique/output/path --class_values 1 2 3 4 5 6 7 8 --class_points 10 10 10 10 10 10 10"""
     )
     

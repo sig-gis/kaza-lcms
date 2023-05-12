@@ -9,8 +9,8 @@ def main():
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
-    description="Create land cover primitives for all classes in provided training data",
-    usage = "python 03RFprimitives.py -i path/to/input_stack -t path/to/training_data -o path/to/output"
+    description="Create Land Cover Primitives For All Classes in Provided Training Data",
+    usage = "03RFprimitives -i path/to/input_stack -t path/to/training_data -o path/to/output"
     )
     
     parser.add_argument(
@@ -29,14 +29,6 @@ def main():
     required=True,
     help="full asset path(s) to training point dataset(s)"
     )
-    
-    # parser.add_argument(
-    #     "-t",
-    #     "--training_data",
-    #     type=str,
-    #     required=True,
-    #     help = "full asset path to training data"
-    # )
     
     parser.add_argument(
         "-o",

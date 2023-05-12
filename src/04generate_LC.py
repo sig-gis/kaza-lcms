@@ -9,8 +9,8 @@ def main():
     ee.Initialize(project='wwf-sig')
     
     parser = argparse.ArgumentParser(
-    description="Generate single land cover image from land cover primitives image collection",
-    usage = "python 04generate_LC.py -i input_primitive_collection -o output_landcover_image"
+    description="Generate Single Land Cover Image From Land Cover Primitives Image Collection",
+    usage = "04generate_LC -i path/to/input_primitive_collection -o output/path/to/landcover_image"
     )
     
     parser.add_argument(
