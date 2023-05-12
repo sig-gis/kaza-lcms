@@ -2,6 +2,7 @@
 import os
 import ee
 import argparse
+import numpy as np
 import src.utils.sampling as sampling
 from src.utils.check_exists import check_exists
 import src.utils.exports as exports
@@ -25,7 +26,6 @@ import src.utils.exports as exports
 scale = 10 # for Sentinel2
 # landCover is the named field which will hold each
 # it is the class band in the image that is being sampled
-landCover = 'classification'
 
 def ceoClean(f):
         # LON,LAT,PLOTID,SAMPLEID.,
@@ -49,8 +49,8 @@ def main():
     ee.Initialize(project='wwf-sig')
 
     parser = argparse.ArgumentParser(
-    description="Generate Sample Points From an ee.Image",
-    usage = "00sample_pts -im input/path/to/image -o output/path/to/sample_pts --n_points 100 --to_drive"
+    description="Generate Random Sample Points From an ee.Image, Formatted for Collect Earth Online",
+    usage = "00sample_pts -im input/path/to/image -band LANDCOVER -o output/path --n_points 100 --to_drive"
     )
     
     parser.add_argument(
@@ -60,20 +60,30 @@ def main():
     required=True,
     help="asset path to image you are sampling from"
     )
+    
+    # added this required arg for greater flexibility. default behavior of .stratifiedSample() is to use image's first band
+    # most LC images will only have one band but in case the img doesn't this ensures correct behavior..
+    parser.add_argument(
+    "-band",
+    "--class_band",
+    type=str,
+    required=True,
+    help="class band name to use for stratification"
+    )
 
     parser.add_argument(
     "-o",
     "--output",
     type=str,
     required=False,
-    help="The output asset path basename for export. Default: 'projects/wwf-sig/assets/kaza-lc/sample_pts/[input_fc_basename]_labelOnly' "
+    help="The output asset path basename for export. Default: 'projects/wwf-sig/assets/kaza-lc/sample_pts/[input_img_basename]_sample_pts' "
     )
     
     parser.add_argument(
     "--n_points",
     type=int,
     required=False,
-    help="Number of points per class. Default: 200"
+    help="Number of points per class. Default: 100"
     )
 
     parser.add_argument(
@@ -107,6 +117,15 @@ def main():
     action="store_true",
     help="exports to Google Drive only",
     )
+    
+    parser.add_argument(
+    "-r",
+    "--reshuffle",
+    dest="reshuffle",
+    action="store_true",
+    help="randomizes seed used in all functions",
+    )
+
     parser.add_argument(
     "-d",
     "--dry_run",
@@ -117,13 +136,15 @@ def main():
 
     args = parser.parse_args()
     
-    input_path = args.input
+    input_path = args.input_image
+    class_band = args.class_band
     output = args.output
     n_points = args.n_points
     class_values = args.class_values
     class_points = args.class_points
     to_asset = args.to_asset
     to_drive = args.to_drive
+    reshuffle = args.reshuffle
     dry_run = args.dry_run
 
     if output:
@@ -143,26 +164,40 @@ def main():
         if len(class_values) != len(class_points):
             print(f"Error: class_points and class_values are of unequal length: {class_values} {class_points}")
             exit()
-
+        # class_values and class_points provided so we'll override n_points, 
+        # but ee.Image.stratifiedSample() still requires it so we set to default
+        n_points=100
+    
     # if only one is provided, error 
     elif (class_values != None and class_points == None) or (class_values == None and class_points != None):
         print(f"Error: class_values and class_points args are codependent, provide both or neither. class_values:{class_values}, class_points:{class_points}")
     
-    # if neither provided, n_points must be provided, otherwise we set a default n_points value 
+    # if neither class_values nor class_points provided, n_points must be provided, otherwise we set a default n_points value 
     else:
         if n_points != None:
             pass
         else:
-            print("Warning: Defaulting to equal allocation of default n. Set n_points or class_values and class_points to control sample allocation.")
-    
+            n_points=100
+            print(f"Warning: Defaulting to equal allocation of default n: {n_points}. Set n_points or class_values and class_points to control sample allocation.")
+            
     
     img = ee.Image(input_path)
     bbox = img.geometry().bounds() # region
-
+    # default seed is set, will re-randomize seed if reshuffle==True
+    seed=90210
+    if reshuffle:
+        np.random.RandomState()
+        seed = np.random.randint(low=1,high=1e6)
+        print(f"reshuffled new seed: {seed}")
+    
+    print(n_points)
+    print(class_values)
+    print(class_points)
     samples = sampling.strat_sample(img=img,
-                                    class_band=landCover,
+                                    class_band=class_band,
                                     region=bbox,
                                     scale=scale,
+                                    seed=seed, # 10, hard coded set at top of script
                                     n_points=n_points,
                                     class_values=class_values,
                                     class_points=class_points).map(ceoClean)
@@ -172,7 +207,7 @@ def main():
     drive_folder = 'kaza-lc'
     drive_desc = description+'-Drive'
     asset_desc = description+'-Asset'
-    selectors = 'LON,LAT,PLOTID,SAMPLEID,'+landCover
+    selectors = 'LON,LAT,PLOTID,SAMPLEID,'+class_band
     # will export to drive or asset if you specify one or the other
     if to_asset==True and to_drive==False:
         if dry_run:

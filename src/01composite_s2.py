@@ -8,7 +8,7 @@ import argparse
 def main():
     ee.Initialize(project='wwf-sig')
     parser = argparse.ArgumentParser(
-    description="Create Sentinel-2 Composite for an AOI",
+    description="Create Sentinel-2 Composite for an AOI or reference polygons",
     usage = "python 02composite_s2.py -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
     )
     
@@ -25,7 +25,7 @@ def main():
     "--year",
     type=int,
     required=True,
-    help="The year to generate covariates."
+    help="Year of data to composite"
     )
 
     parser.add_argument(
@@ -41,7 +41,7 @@ def main():
     "--polygons",
     dest="polygons",
     action="store_true",
-    help="set this flag if your aoi (--aoi) is a multi-polygon dataset",
+    help="set this flag if your aoi (--aoi) is a multi-polygon dataset, not a single polygon AOI",
     )
     
     parser.add_argument(

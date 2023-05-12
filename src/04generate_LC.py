@@ -29,11 +29,19 @@ def main():
     help="GEE asset path for export. Defaults to: projects/wwf-sig/assets/kaza-lc/output_landcover/[LandCover]_input_basename"
     )
 
+    parser.add_argument(
+    "-d",
+    "--dry_run",
+    dest="dry_run",
+    action="store_true",
+    help="goes through checks and prints output asset path but does not export.",
+    )
     args = parser.parse_args()
 
     input_path = args.input
     output_path = args.output
-    
+    dry_run = args.dry_run
+
     if output_path:
       outputbase = os.path.dirname(output_path)
       asset_id = output_path
@@ -52,11 +60,14 @@ def main():
     # If output Image exists already, throw error
     assert check_exists(input_path) == 0, f"Input Primitives Collection does not exist: {input_path}"
     
-    prims = ee.ImageCollection(input_path)
-    max = maxProbClassifyFromImageCollection(prims)
-    aoi = prims.first().geometry().bounds()
-    description = os.path.basename(asset_id).replace('/','_')
-    exportImgToAsset(img=max,desc=description,asset_id=asset_id,region=aoi,scale=10)
+    if dry_run:
+            print(f"would export: {asset_id}")
+    else:
+      prims = ee.ImageCollection(input_path)
+      max = maxProbClassifyFromImageCollection(prims)
+      aoi = prims.first().geometry().bounds()
+      description = os.path.basename(asset_id).replace('/','_')
+      exportImgToAsset(img=max,desc=description,asset_id=asset_id,region=aoi,scale=10)
 
 if __name__ == "__main__":
    main()    
