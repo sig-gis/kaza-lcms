@@ -131,6 +131,20 @@ example:
 
 **NOTE: The user can control which spectral indices and time series features to generate in this tool by modifying this file in the repository : [`~/src/utils/model_inputs.py`](/src/utils/model_inputs.py). See [ProjectWorkflow.md](/ProjectWorkflow.md) for details.**
 
+## **02train_test**
+
+Extract Train and Test Point Data from an Input Image within Reference Polygon Areas.
+
+Generates stratified random samples from reference polygons, splitting the sample points into train and test points if desired. The image bands from the provided image are extracted to every point. 
+
+example:
+```
+02train_test -rp path/to/reference_polygon_fc -im path/to/input/stack 
+                -o unique/output/path --class_values 1 2 3 4 5 6 7 8 --class_points 10 10 10 10 10 10 10
+```
+
+
+
 ## **03RFprimitives**
 
 Create Land Cover Primitives For All Classes in Provided Training Data. 
