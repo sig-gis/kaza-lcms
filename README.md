@@ -95,7 +95,7 @@ earthengine ls projects/wwf-sig/assets/kaza-lc
 
 If you do not get an error and it returns a list of folders and assets similar to this then you are good to go! :tada:
 
-## Tool Documentation
+# Tool Documentation
 
 Before you run any scripts, ensure you've activated your anaconda environment with your required dependencies and have changed into the `kaza-lcms` directory that contains the scripts.
 example:
@@ -107,7 +107,7 @@ cd C:\kaza-lcms
 Each Command Line Interface (CLI) script tool can be run in your command-line terminal of choice. The user must provide values for each required command-line argument to control the analysis.
 You can first run any script, only declaring the `-h` flag. This will bring up the help dialog with a usage example and a description of required command-line arguments. 
 
-### **00sample_pts**
+## **00sample_pts**
 
 Generate Random Sample Points From an ee.Image, Formatted for Collect Earth Online
 
@@ -118,7 +118,7 @@ example:
 00sample_pts -im input/path/to/image -band LANDCOVER -o output/path --n_points 100 --to_drive
 ```
 
-### **01sentinel2_sr**
+## **01sentinel2_sr**
 
 Creates a Sentinel-2 Composite for an AOI or reference polygons. 
 
@@ -131,7 +131,7 @@ example:
 
 **NOTE: The user can control which spectral indices and time series features to generate in this tool by modifying this file in the repository : [`~/src/utils/model_inputs.py`](/src/utils/model_inputs.py). See [ProjectWorkflow.md](/ProjectWorkflow.md) for details.**
 
-### **03RFprimitives**
+## **03RFprimitives**
 
 Create Land Cover Primitives For All Classes in Provided Training Data. 
 
@@ -142,7 +142,7 @@ example:
 python 03RFprimitives.py -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTestPoly_stack_2020 -r projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData  -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_2020
 ```
 
-### **04generate_LC**
+## **04generate_LC**
 
 Generate Single Land Cover Image From Land Cover Primitives Image Collection
 
