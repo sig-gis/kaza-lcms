@@ -1,8 +1,10 @@
 import ee
-from utils import covariates
-from utils import harmonics
+from src.utils import covariates
+from src.utils import harmonics
+from src.utils.model_inputs import model_inputs
 idx = covariates.indices()
 
+# Global S2 Processing Parameters
 CLOUD_FILTER = 70
 CLD_PRB_THRESH = 40
 NIR_DRK_THRESH = 0.15
@@ -103,9 +105,22 @@ def add_covariates(img):
     img = img.select(covariates) # because .addBands() will create duplicates of pre-existing bands
     return img
 
-# main-level function
 def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
-    """Computes preprocessed Sentinel-2 multi-band composite within an AOI footprint"""
+    """
+    Processes an annual Sentinel-2 SR multi-band composite within an AOI footprint polygon
+
+    Uses model_inputs settings dictionary stored at src/utils/model_inputs.py and imported at top of file 
+        to compute specific indices and time series features
+
+    args:
+        aoi (ee.FeatureCollection): AOI footprint polygon FC
+        start_year (int): start year
+        end_year (int): end year
+    
+    returns:
+        ee.Image raster stack of S2 bands and covariates within AOI polygon
+
+    """
     start_date = ee.Date.fromYMD(start_year,1,1)
     end_date = ee.Date.fromYMD(end_year,12,31)
     
@@ -115,34 +130,41 @@ def s2process(aoi:ee.FeatureCollection,start_year:int,end_year:int):
                 .map(apply_cld_shdw_mask)
                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
                 )
+    
+    # compute spectral indices per image (set in model_inputs settings) 
+    addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
+    
+    # compute desired percentile composites on bands/indices (set in model_inputs settings) 
+    percentile_options = model_inputs['percentileOptions']
+    percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
+    
+    # compute harmonics if desired (set in model_inputs settings) 
+    if model_inputs['addHarmonics']:
+        harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
+    stack = ee.Image.cat([percentiles,harmonics_features])
+    
+    # add JRC variables if desired (set in model_inputs settings) 
+    if model_inputs['addJRCWater']:
+        stack = idx.addJRC(stack).unmask(0)
+    
+    # add topography variables if desired (set in model_inputs settings)     
+    if model_inputs['addTopography']:
+         stack = idx.addTopography(stack).unmask(0)
 
-    percentiles = (imgColl.map(add_covariates)
-                .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
-    )
-
-    # add time bands
-    timeField = "system:time_start"
-    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
-
-    # compute harmonics
-    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
-
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
-
-    stack = idx.addTopography(pct_harmonics)
     return ee.Image(stack)
 
 def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int):
     """
-    Computes preprocessed Sentinel-2 multi-band composite within reference polygon footprints, 
+    Processes an annual Sentinel-2 SR multi-band composite within reference polygon footprints
+    Uses model_inputs settings dictionary stored at src/utils/model_inputs.py and imported at top of file 
+        to compute specific indices and time series features
     
     args: 
     ref_polys: reference polygon FeatureCollection
     ref_label: predictor property name the model needs (e.g. 'LANDCOVER')
-    ref_year: year that hte polygons were interpreted for, controls the time period of the s2 composite
+    ref_year: year that the polygons were interpreted for, controls time period of s2 imagery used in the composite
     
-    Returns: ee.Image raster stack of S2 bands and predictor band within footprints of reference polygons
+    Returns: ee.Image raster stack of S2 bands and covariates within footprints of reference polygons
     """
     start_date = ee.Date.fromYMD(ref_year,1,1)
     end_date = ee.Date.fromYMD(ref_year,12,31)
@@ -157,19 +179,26 @@ def s2process_refdata(ref_polys:ee.FeatureCollection,ref_label:str,ref_year:int)
                 .select(["B2","B3","B4","B8","B11","B12"],['blue','green','red','nir','swir1','swir2'])
                 )
 
-    percentiles = (imgColl.map(add_covariates)
-                .reduce(ee.Reducer.percentile(percentiles=[10,25,50,75,90]))
-    )
-
-    # add time bands
-    timeField = "system:time_start"
-    timeCollection = harmonics.addTimeConstant(imgColl, timeField)
-
-    # compute harmonics
-    harmonics_nir =  harmonics.calculateHarmonic(timeCollection,ee.String("nir"))
-    harmonics_swir = harmonics.calculateHarmonic(timeCollection,ee.String("swir1"))
-
-    pct_harmonics = ee.Image.cat([percentiles,harmonics_nir,harmonics_swir])
-
-    stack = idx.addTopography(pct_harmonics).addBands(ref_poly_img)
-    return ee.Image(stack)
+    # compute spectral indices per image from model_inputs settings
+    addedIndices = imgColl.map(covariates.returnCovariatesFromOptions)
+    
+    # compute desired percentile composites on bands/indices from model_inputs settings
+    percentile_options = model_inputs['percentileOptions']
+    percentiles = addedIndices.reduce(ee.Reducer.percentile(percentiles=percentile_options))
+    
+    # compute harmonics if desired (set in model_inputs settings)
+    if model_inputs['addHarmonics']:
+        harmonics_features = harmonics.doHarmonicsFromOptions(addedIndices) 
+    stack = ee.Image.cat([percentiles,harmonics_features])
+    
+    # add JRC variables if desired (set in model_inputs settings)
+    if model_inputs['addJRCWater']:
+        stack = idx.addJRC(stack).unmask(0) # 0s are valid values for these variables
+    
+    # add topography variables if desired (set in model_inputs settings) 
+    if model_inputs['addTopography']:
+         stack = idx.addTopography(stack).unmask(0) # 0s are valid values for these variables
+    
+    return ee.Image(stack).updateMask(ref_poly_img)
+    # have to update mask again because of the unmask(0)s for JRC and Topo.
+    # ensures all pixels outside of reference polygons are masked

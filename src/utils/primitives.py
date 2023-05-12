@@ -59,7 +59,7 @@ def gettop20(dict):
    return newl
 
 def RFprim(training_pts,input_stack):
-    """Construct train and apply RF Probability classifier on LC Primitives"""
+    """Train and apply RF Probability classifier on a Primitive"""
     inputs = ee.Image(input_stack)
     samples = ee.FeatureCollection(training_pts)
     
@@ -98,12 +98,23 @@ def RFprim(training_pts,input_stack):
     return importance_all,oob_all,importance_top20,oob_top20,output
 
 def primitives_to_collection(input_stack,training_pts,output_ic,metrics_path):
-    """ export each RF primitive image into a collection"""
+    """
+    Create LC Primitive image for each LC class in training points
+
+    args:
+        input_stack (ee.Image): of all covariates and predictor
+        training_pts (ee.FeatureCollection): training pts containing full LC typology
+        output_ic (str): output ImageCollection path
+        metrics_path (str): local file path to the metrics/this_model_run folder in repo
+    
+    returns:
+        ImageCollection containing Primitive Images
+    """
 
     input_stack = ee.Image(input_stack)
     training_pts = ee.FeatureCollection(training_pts)
     # make the empty IC, assuming it'll never already exist because error handling at main() will have prohibited that
-    print(f"Creating empty Primitives ImageCollection: {output_ic}.")
+    print(f"Creating empty Primitives ImageCollection: {output_ic}.\n")
     os.popen(f"earthengine create collection {output_ic}").read()
     
     # list of distinct LANDCOVER values

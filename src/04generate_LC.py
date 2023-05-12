@@ -1,54 +1,11 @@
 import os
 import ee
 import argparse
-from utils.check_exists import check_exists
-
-# Take Image Collection of RF Primitives, perform pixel-wise maximum of all Primitive probability images to return single-band LC image
-
-# Array computation returns img values from 0 to n-1 due to 0-base indexing, so we .add(1) to match LC strata
-# assumes LC strata values are already alphanumerically sorted (Bare:1, Built:2, Crop:3, etc)
-def maxProbClassifyFromImage(image): # remapNum,orginalNum
-  # image: multiband image of probabilities
-  # remapNum: list, list of intergers 0-N matching the number of probability bands
-  # originalNum: list, list of inergers n-N matching the number of probability bands
-  #   that represent their desired map values
-  maxProbClassification = (image.toArray()
-                        .arrayArgmax()
-                        .arrayFlatten([['classification']])
-                        #// .remap(remapNum,
-                        #//       originalNum
-                        #//       )
-                        .rename('classification')
-                        )
-  return maxProbClassification
-
-def maxProbClassifyFromImageCollection(imagecollection):
-  image = imagecollection.toBands()
-  return (maxProbClassifyFromImage(image)
-          .add(1))
-
-# would need to do a remap if order is not alphanumeric
-# from = [0,1,2,3,4,5,6,7]
-# to = [1,2,3,4,5,6,7,8]
-
-def export_img(img,asset_id,aoi):
-    """Export image to Primitives imageCollection"""
+from src.utils.assemblage import maxProbClassifyFromImageCollection
+from src.utils.check_exists import check_exists
+from src.utils.exports import exportImgToAsset
     
-    desc = os.path.basename(asset_id).replace('/','_') # f"{sensor}_{year}_LandCover_{aoi_s}"
-    task = ee.batch.Export.image.toAsset(
-          image=ee.Image(img),
-          description=desc,
-          assetId=asset_id, 
-          region=aoi, #.geometry().bounds(), 
-          scale=10, 
-          crs='EPSG:32734', 
-          maxPixels=1e13)
-
-    task.start()
-    print(f"Export Started for {asset_id}")
-    
-
-if __name__ == "__main__":
+def main():
     ee.Initialize(project='wwf-sig')
     
     parser = argparse.ArgumentParser(
@@ -72,11 +29,19 @@ if __name__ == "__main__":
     help="GEE asset path for export. Defaults to: projects/wwf-sig/assets/kaza-lc/output_landcover/[LandCover]_input_basename"
     )
 
+    parser.add_argument(
+    "-d",
+    "--dry_run",
+    dest="dry_run",
+    action="store_true",
+    help="goes through checks and prints output asset path but does not export.",
+    )
     args = parser.parse_args()
 
     input_path = args.input
     output_path = args.output
-    
+    dry_run = args.dry_run
+
     if output_path:
       outputbase = os.path.dirname(output_path)
       asset_id = output_path
@@ -95,7 +60,14 @@ if __name__ == "__main__":
     # If output Image exists already, throw error
     assert check_exists(input_path) == 0, f"Input Primitives Collection does not exist: {input_path}"
     
-    prims = ee.ImageCollection(input_path)
-    max = maxProbClassifyFromImageCollection(prims)
-    aoi = prims.first().geometry().bounds()
-    export_img(max,asset_id,aoi)
+    if dry_run:
+            print(f"would export: {asset_id}")
+    else:
+      prims = ee.ImageCollection(input_path)
+      max = maxProbClassifyFromImageCollection(prims)
+      aoi = prims.first().geometry().bounds()
+      description = os.path.basename(asset_id).replace('/','_')
+      exportImgToAsset(img=max,desc=description,asset_id=asset_id,region=aoi,scale=10)
+
+if __name__ == "__main__":
+   main()    

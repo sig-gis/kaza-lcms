@@ -1,6 +1,6 @@
 import ee
 ee.Initialize(project='wwf-sig')
-#this is a comment.
+
 def check_exists(ee_path:str):
     try:
         ee.data.getAsset(ee_path)

@@ -21,11 +21,7 @@ conda create -n gee
 ```
 conda activate gee
 ```
-* In your shell, run this code block:
-```
-conda install -c conda-forge earthengine-api scikit-learn pandas
-```
-* Wait for package solver to finish and type y to proceed with installation.
+* Leave this environment activated, we will install necessary packages from the `kaza-lc` source code in the next section. 
 
 ## Git Setup
 1. Download the Git installer for your OS from the Git downloads [page](https://git-scm.com/downloads). Run the installer following all recommended settings
@@ -34,7 +30,7 @@ conda install -c conda-forge earthengine-api scikit-learn pandas
 git --version
 ```
 
-![kaza_gitVersion](https://user-images.githubusercontent.com/51868526/184142833-ae1dac16-6196-4aaf-a130-28e0e6707825.JPG)
+![kaza_readme_git_version](docs/imgs/git_version.PNG)
 
 3. Clone the kaza repository to a local folder 
 
@@ -42,11 +38,22 @@ git --version
 git clone https://github.com/kyle-woodward/kaza-lc.git
 ```
 
-![kaza_redme_gitClone](https://user-images.githubusercontent.com/51868526/184143024-31f4e6e0-0963-44bb-a72d-5b2778de5446.JPG)
+![kaza_readme_git_clone](docs/imgs/git_clone.PNG)
 
 4. `cd` into your new kaza-lc folder and `ls`(linux/MacOS) or `dir`(Windows) to see its contents
 
-![kaza_readme_cdToKazalc](https://user-images.githubusercontent.com/51868526/184143297-bbcd50ee-20eb-4466-b438-2855b01e6585.JPG)
+![kaza_readme_cdToKazalc](docs/imgs/cd_to_kazalc.PNG)
+
+## Install Source Code and Dependencies
+1. While still in your terminal, and in the `kaza-lc` parent directory, install the `kaza-lc` package from the source code with pip:
+
+```
+pip install -e .
+```
+
+![kaza_readme_pip_install](docs/imgs/pip_install.PNG)
+
+pip will begin to install the `kaza-lc` source code and its required dependencies. We install the package in developer mode (`-e` flag) so that changes made to files will be reflected in the code compiled at run-time. If the python package dependencies are already installed in your conda `gee` virtual environment, your output will show 'requirement already satisfied' next to each package already installed. 
 
 ## Earth Engine Setup
 Earth Engine requires you to authenticate your account credentials to access the Earth Engine API and your chosen Cloud Project. We do this with the `gcloud` python utility
@@ -91,18 +98,19 @@ If you do not get an error and it returns a list of folders and assets similar t
 Execute these steps in order create a yearly land cover product for a given year and region in KAZA 
 *(tool in parentheses)*
 
-1. Generate stratified random reference samples for interpretation in Collect Earth Online (01sample_pts.py)
-2. Generate input data stack from chosen sensor used by the model (02sentinel2_sr.py)
-3. Create land cover primitives from Random Forest models (03RFprimitives.py)
-4. Construct categorical land cover map from the land cover primitives (04generate_LC.py)
-5. Conduct accuracy assessment and estimate area (AREA2 tool)
+1. Generate stratified random reference samples for interpretation in Collect Earth Online (00sample_pts)
+2. Extract train and test data points from annual Sentinel-2 SR composites (01train_test)
+3. Generate input data stack from chosen sensor used by the model (02composite_s2)
+4. Create land cover primitives from Random Forest models (03RFprimitives)
+5. Construct categorical land cover map from the land cover primitives (04generate_LC)
+6. Conduct accuracy assessment and estimate area (AREA2: Stratified Estimator tool)
 
 **click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC**
 
 **click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing**
 
 ## About the python scripts
-Each script will be run on the command-line. The user must provide values for each required command-line argument to control the analysis.
+Each Command Line Interface (CLI) script will be run on the command-line. The user must provide values for each required command-line argument to control the analysis.
 You can first run any script, only declaring the `-h` flag. This will bring up the help dialog with a usage example and a description of required command-line arguments. 
 Before you run any scripts, ensure you've activated your anaconda environment with your required dependencies and have changed into the `kaza-lc` directory that contains the scripts.
 example:
