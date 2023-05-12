@@ -8,65 +8,57 @@ from pathlib import Path
 import pandas as pd
 import argparse
 import matplotlib.pyplot as plt
+from utils import helper
+
 if __name__=="__main__":
-    ee.Initialize()
+    ee.Initialize(project='wwf-sig')
     
     parser = argparse.ArgumentParser(
     description="Generate Accuracy report for land cover product",
-    usage = "python 05accuracy.py -p wwf-sig -a Zambezi -y 2021 -s S2"
+    usage = "python 05accuracy.py -i input_landcover_img -t testing_sample_pts -o output_metrics_folder"
     )
 
     parser.add_argument(
-    "-p",
-    "--project",
+    "-i",
+    "--input",
     type=str,
-    required=True
+    required=True,
+    help="asset path to land cover image"
     )
-    
+
     parser.add_argument(
-    "-a",
-    "--aoi_string",
+    "-t",
+    "--test_points",
     type=str,
-    required=True
+    required=True,
+    help="asset path to testing points"
     )
-    
+
     parser.add_argument(
-    "-y",
-    "--year",
-    type=int,
-    required=True
-    )
-    
-    parser.add_argument(
-    "-s",
-    "--sensor",
+    "-o",
+    "--output",
     type=str,
-    required=True
+    required=True,
+    help="local output folder to save metrics to"
     )
-    
-    
     
     args = parser.parse_args()
     
-    project=args.project #kaza-lc
-    aoi_s = args.aoi_string #SNMC
-    year = args.year #2021
-    sensor=args.sensor #S2
+    image_id = args.input
+    sample_id = args.test_points
+    output_path = args.output
 
 #%%
-    labels = [0,1,2,3,4,5,6,7]
-    lc_dct = {
-        0:'Bare',
-        1:'Built',
-        2:'Crop',
-        3:'Forest',
-        4:'Grass',
-        5:'Shrub',
-        6:'Water',
-        7:'Wetland'
-        }
-    pred_LC_img = ee.Image(f"projects/{project}/assets/kaza-lc/output_landcover/{sensor}_{year}_LandCover_{aoi_s}")
+    labels = list(lc_dct.keys())
 
+    if helper.check_exists(image_id):
+        raise ee.ee_exception.EEException('image does not exsit')
+    elif helper.check_exists(sample_id):
+        raise ee.ee_exception.EEException('samples do not exsit')
+    else:
+        pred_LC_img = ee.Image(image_id)
+        test_pts = ee.FeatureCollection(sample_id) 
+    
     # EOSS's KAZA LC legend can be looked at here https:docs.google.com/document/d/12K4MqsAeq2bmCx3XyOMZefx6yBAkQv3lg_FA8NIxoow/edit?usp=sharing
         # aggregate LC2020 sub-classes together to make training points
         
@@ -82,16 +74,17 @@ if __name__=="__main__":
     # Until we have independently interpreted LC refrence samples, the ground truth is the collapsed EOSS LC product 
     # we generated the training samples from, so the LANDCOVER property in the test points is the 'actual' for pred vs actual
 
-    test_pts = ee.FeatureCollection(f"projects/{project}/assets/kaza-lc/sample_pts/testing{aoi_s}{year}") 
     print('Total Test samples: ',test_pts.size().getInfo())
+    print('samples per class in ground truth',test_pts.aggregate_histogram('LANDCOVER').getInfo())
+
     test_w_pred = pred_LC_img.sampleRegions(collection=test_pts,scale=10, projection='EPSG:32734', tileScale=2, geometries=True)
-
-    #print(test_w_pred.first().getInfo()['properties'])
-
+    
     pred = test_w_pred.aggregate_array('classification').getInfo()
     true = test_w_pred.aggregate_array('LANDCOVER').getInfo()
-    # print('samples per class in ground truth',test_pts.aggregate_histogram('LANDCOVER').getInfo())
-
+    unique_pred = set(pred)
+    unique_true = set(true)
+    assert unique_pred==unique_true, f"unique values of predicted and ground truth do not match. pred:{unique_pred}, truth:{unique_true}"
+    
     # overall acc,prec,recall,f1
     acc = round(accuracy_score(true,pred),3)
     prec = round(precision_score(true,pred,average="weighted"),3)
@@ -104,7 +97,11 @@ if __name__=="__main__":
     # print(f'F1: {f1}')
 
     # to get class-wise accuracies, must construct a multi-label confusion matrix, outputs true/false positives/negatives per label
-    mcm = multilabel_confusion_matrix(true, pred, sample_weight=None, labels=[0,1,2,3,4,5,6,7], samplewise=False)
+    # mcm = multilabel_confusion_matrix(true, pred, sample_weight=None)
+    mcm = multilabel_confusion_matrix(true, pred, sample_weight=None, labels=labels, samplewise=False)
+    # C:\Users\kyle\anaconda3\envs\gee\lib\site-packages\sklearn\metrics\_classification.py:1334: UndefinedMetricWarning: 
+    # Precision is ill-defined and being set to 0.0 in labels with no predicted samples. Use `zero_division` parameter to control this behavior.
+    
     # Returns list of 2x2 arrays of length labels 
     # true negatives == arr[0][0]
     # false negatives == arr[1][0]
@@ -145,10 +142,10 @@ if __name__=="__main__":
     disp_actual = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical')
     disp_norm = ConfusionMatrixDisplay.from_predictions(y_true=true,y_pred=pred,display_labels=lc_dct.values(),xticks_rotation='vertical',normalize='true') # normalize: 'true' (rows), 'pred' (columns), or 'all' (total sample count)
     # Exports
-    cwd = os.getcwd()
-    output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
+    # cwd = os.getcwd()
+    # output_path = Path(f"{cwd}/metrics_{sensor}_{year}_{aoi_s}")
     if not os.path.exists(output_path):
-        output_path.mkdir(parents=True)
+        Path(output_path).mkdir(parents=True)
 
     # export class accuracies to csv
     df_class.to_csv(f"{output_path}/classAccuracy.csv")

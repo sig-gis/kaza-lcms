@@ -1,5 +1,5 @@
 import ee, math
-
+from src.utils.model_inputs import model_inputs
 class indices():
 
 	def __init__(self):
@@ -243,21 +243,23 @@ class indices():
 		""" add indices to image"""
 		
 		# no need to add indices that are already there
-		indices = self.removeDuplicates(covariates,img.bandNames().getInfo())
+		# see TODO below, can't use removeDuplicates in .map()
+		# indices = self.removeDuplicates(covariates,img.bandNames().getInfo())
+		indices = covariates
 		
 		for item in indices:
 			img = self.functionList[item](img)
 
 		return img
 
-
 	def removeDuplicates(self,covariateList,bands):
 		""" function to remove duplicates, i.e. existing bands do not need to be calculated """
-		
+		# TODO: this does not scale to being mappable server side (can't use getInfo in mapped functions)
+		# would need to EEify this logic to use with ee.List()'s
 		return [elem for elem in covariateList if elem not in bands]
 
 	def renameBands(self,image,prefix):
-		'rename bands with prefix'
+		""" renames bands with prefix """
 		
 		bandnames = image.bandNames()
 
@@ -273,7 +275,7 @@ class indices():
 
 
 def returnCovariates(img):
-	
+	"""Workflow for computing Landsat and covariates. bands and covariates are hardcoded inside the function."""
 	# hard coded for now
 	bands = ['blue','green','red','nir','swir1', 'swir2']	
 	bandLow = ['p20_blue','p20_green','p20_red','p20_nir','p20_swir1', 'p20_swir2']
@@ -316,5 +318,22 @@ def returnCovariates(img):
 	up = addIndices(img.select(bandHigh,bands),"p80")
 		
 	img = down.addBands(middle).addBands(up)
+	
+	return img
+
+def returnCovariatesFromOptions(img):
+	"""
+	Workflow for computing image covariates according to user settings defined in src.utls.model_inputs.py
+	model_inputs is a settings dictionary that is imported at top of this file.
+	"""
+	covariates = model_inputs['indices']
+		
+	index = indices()
+		
+	img = ee.Image(img)
+	img = index.getIndices(img,covariates)
+	
+	if model_inputs['addTasselCap']:
+		img = index.addAllTasselCapIndices(img)
 	
 	return img

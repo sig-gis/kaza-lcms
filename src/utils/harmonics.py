@@ -1,18 +1,21 @@
-# harmonics.py
 import ee
 import math
+from src.utils.model_inputs import model_inputs
 
-ee.Initialize()
-
+ee.Initialize(project='wwf-sig')
 
 def addHarmonicTerms(image):
+    """add Time bands to image"""
     timeRadians = image.select("t").multiply(2 * math.pi)
     return image.addBands(timeRadians.cos().rename("cos")).addBands(
         timeRadians.sin().rename("sin")
     )
 
-
 def calculateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String):
+    """
+    Calculate harmonic coefficients (phase and amplitude) off of an ImageCollection
+    dependent: band that you fit the harmonic model for, must be contained in ImageCollection
+    """
     harmonicIndependents = ee.List(["constant", "t", "cos", "sin"])
     #  Add harmonic terms as new image bands.
     harmonicLandsat = imageCollection.map(addHarmonicTerms)
@@ -44,7 +47,7 @@ def calculateHarmonic(imageCollection: ee.ImageCollection, dependent: ee.String)
 
 
 def harmonicRGB(harmonics: ee.Image):
-    # // Use the HSV to RGB transform to display phase and amplitude
+    """Use the HSV to RGB transform to display phase and amplitude"""
     amplitude = harmonics.select(".*amplitude")
     phase = harmonics.select(".*phase")
 
@@ -58,6 +61,10 @@ def harmonicRGB(harmonics: ee.Image):
 
 
 def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
+    """
+    Add time constant to images in an ImageCollection
+    timeField: time stamp property name (typically is the 'system:time_start' property of an image)
+    """
     def _(image, timeField):
         # // Compute time in fractional years since the epoch.
         date = ee.Date(image.get(timeField))
@@ -69,6 +76,52 @@ def addTimeConstant(imageCollection: ee.ImageCollection, timeField: str):
 
     return imageCollection.map(lambda i: _(i, timeField))
 
+def doHarmonicsFromOptions(imgColl:ee.ImageCollection):
+    """
+    calculateHarmonic function but using user inputs defined in src.utils.model_inputs 
+        to compute harmonics for each band specified
+    
+    model_inputs is a user settings dictionary that is imported at top of this file. 
+    """
+    imgColl = ee.ImageCollection(imgColl)
+
+    # construct EE dict from model_inputs python dict
+    eedict = ee.Dictionary(model_inputs)
+    
+    # get harmonicsOptions dictionary
+    harmonicsOptions = eedict.get('harmonicsOptions')
+    
+    # get band keys as list
+    bands = ee.Dictionary(harmonicsOptions).keys()
+    
+    def harmonicByBand(band):
+        band = ee.String(band)
+        # get the params for that band
+        bandwiseParams = ee.Dictionary(harmonicsOptions).get(band)
+        
+        # get the start and end DOY parameters
+        start = ee.Dictionary(bandwiseParams).get('start')
+        end = ee.Dictionary(bandwiseParams).get('end')
+        
+        # create temporal filtered imgColl for that band
+        imgCollByBand = (ee.ImageCollection(imgColl)
+                            .select(band)
+                            .filter(ee.Filter.dayOfYear(start,end)))
+        # add time bands
+        timeField = "system:time_start"
+        timeCollection = addTimeConstant(imgCollByBand, timeField)
+        
+        return ee.Image(calculateHarmonic(timeCollection,band))
+    
+    # do harmonics by band key in model_inputs dictionary
+    listOfImages = ee.Image.cat(ee.List(bands).map(harmonicByBand))
+    bandStack = ee.Image(ee.ImageCollection.fromImages(listOfImages).toBands())
+    
+    # to remove srcImg band name indexing resulting from .toBands() 
+    # (i.e. [0_swir1_phase, 0_swir1_amplitude] -> [swir1_phase, swir1_amplitude] )
+    bandNames = bandStack.bandNames()
+    fixedBandNames = bandNames.map(lambda e: ee.String(e).split("_").slice(-2).join("_"))
+    return bandStack.rename(fixedBandNames)
 
 if __name__ == "__main__":
     # inputs
@@ -102,3 +155,9 @@ if __name__ == "__main__":
     # test rgb returns correct bands
     eetest = ee.Algorithms.IsEqual(rgb.bandNames(), ["red", "green", "blue"]).getInfo()
     assert eetest is True
+
+    harmonicsByOptions = doHarmonicsFromOptions(imageCollection)
+    optionBands = 'swir1'
+    assert (harmonicsByOptions.bandNames().getInfo() 
+            == ee.List([optionBands.cat("_phase"), optionBands.cat("_amplitude")]).getInfo()
+            ) 
