@@ -6,30 +6,71 @@ Probably will remove these links and visualizing LC outputs will paste a JS code
 
 **click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing**
 
-Execute these steps in order create a yearly land cover product for a given year and region in KAZA 
-*(tool in parentheses)*
+We execute these steps in order create a yearly land cover product for a given year and region in KAZA 
 
-1. Generate Random Land Cover Samples
-2. Collect Reference Polygons in CEO
-3. Create Sentinel-2 Input Stack
-4. Generate Train and Test Data
+1. Create Land Cover Reference Polygons using GEE and Collect Earth Online
+3. Create Sentinel-2 Input Band Stack
+4. Extract Training and Testing Point information from the Sentinel-2 Stack inside Reference Polygons
 5. Create Land Cover Primitives
 6. Assemble Land Cover Map
 7. Area Estimation and Accuracy 
 
 ## Detailed Example
 
-Here is a full run-through of the process, with CLI usage examples, screenshots, and guidance.
+Below is a full run-through of the process, with CLI usage examples, screenshots, and guidance using a small test area within the Binga community AOI.
 
-### Generate Random Land Cover Samples
+### Step 1. Create Land Cover Reference Polygons using GEE and Collect Earth Online
 
-### Collect Reference Polygons in CEO
+#### Step 1a. Export Stratified Random Sample Points from GEE
+
+In order to create a independently-interpreted reference polygon dataset for model training and accuracy assessment, we need to first export some random sample point locations per land cover class to guide our survey in Collect Earth Online. 
+
+Below is a Land Cover image for our area already existing in our GEE Assets at this file path: 'projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020'.
+
+![intial_lc](docs/imgs/initial_landcover.PNG)
+
+* Use the 00sample_pts script, providing a reference land cover image, its land cover band name, and your desired sample stratification options. By default the tool will export the point dataset to Google Drive a CSV and as a GEE FeatureCollection Asset. 
+
+CLI Input:
+
+```
+00sample_pts -im projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020 -band classification -o projects/wwf-sig/assets/kaza-lc/sample_pts/demo_LandCover_BingaTestPoly_2020 --class_values 1 2 3 4 5 6 7 8 --class_points 100 200 200 100 100 100 100 100
+```
+
+CLI Output:
+
+![00sample_pts_output](docs/imgs/00sample_pts_output.PNG)
+
+GEE Task Pane:
+
+![00sample_pts_task_output](docs/imgs/00sample_pts_task_output.PNG)
+
+Feel free to inspect outputs in both formats, but for the following Collect Earth Online step, **we need the sample points exported to Google Drive**
+
+#### Step 1b. Collect Reference Polygons in CEO
 
 Refer to the WWF CEO Data Collection document for instructions
 
-### Create Sentinel-2 Input Stack
+Steps would be to load the CSV file of the sample points as the plots in a CEO interpretation project, setup all other survey settings, do the data collection, export the CSV and import the CSV back into Google Earth Engine
 
-To continue the Research & Development process, all spectral bands and time series features are controlled by the user in the `src/utils/model_inputs.py` file in this repository. 
+### Step 2. Create Sentinel-2 Input Stack
+
+Now that we have the reference polygon data with Land Cover labels, we need to composite the information from Sentinel-2 and other geospatial data sources that the land cover model will be using. This input band stack must be first exported to a GEE asset before we can extract its pixel information to our reference polygons.
+
+CLI Input:
+```
+
+```
+
+CLI Output:
+
+
+
+GEE Task Pane:
+
+
+
+NOTE: To continue the Research & Development process, all spectral bands and time series features are controlled by the user in the ![`src/utils/model_inputs.py`](src/utils/model_inputs.py) file in this repository. 
 
 ![model_inputs](docs/imgs/model_inputs.PNG)
 

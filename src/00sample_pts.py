@@ -190,9 +190,7 @@ def main():
         seed = np.random.randint(low=1,high=1e6)
         print(f"reshuffled new seed: {seed}")
     
-    print(n_points)
-    print(class_values)
-    print(class_points)
+    
     samples = sampling.strat_sample(img=img,
                                     class_band=class_band,
                                     region=bbox,
