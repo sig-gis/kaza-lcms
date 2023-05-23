@@ -97,8 +97,9 @@ def main():
         asset_id_basename = f"{output_folder}/{os.path.basename(input_fc)}_{os.path.basename(input_img)}"
     
     assert check_exists(input_fc) == 0, f"Check input FeatureCollection exists: {input_fc}"
-    assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
-        
+    assert check_exists(output_folder) == 0, f"Check output folder exists: {output_folder}"
+    assert check_exists(input_img) == 0, f"Check input image exists: {input_img}"
+
     # class_values and class_points must be equal length
     if len(class_values) != len(class_points):
         raise ValueError(f"Error: class_points and class_values are of unequal length: {class_values} {class_points}")

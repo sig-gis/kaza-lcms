@@ -9,11 +9,11 @@ Probably will remove these links and visualizing LC outputs will paste a JS code
 We execute these steps in order create a yearly land cover product for a given year and region in KAZA 
 
 1. Create Land Cover Reference Polygons using GEE and Collect Earth Online
-3. Create Sentinel-2 Input Band Stack
-4. Extract Training and Testing Point information from the Sentinel-2 Stack inside Reference Polygons
-5. Create Land Cover Primitives
-6. Assemble Land Cover Map
-7. Area Estimation and Accuracy 
+2. Create Sentinel-2 Input Band Stack
+3. Extract Training and Testing Point information from the Sentinel-2 Stack inside Reference Polygons
+4. Create Land Cover Primitives
+5. Assemble Land Cover Map
+6. Area Estimation and Accuracy 
 
 ## Detailed Example
 
@@ -45,32 +45,67 @@ GEE Task Pane:
 
 ![00sample_pts_task_output](docs/imgs/00sample_pts_task_output.PNG)
 
-Feel free to inspect outputs in both formats, but for the following Collect Earth Online step, **we need the sample points exported to Google Drive**
+GEE Asset Display:
+
+![result_of_00sample_pts](docs/imgs/result_of_00sample_pts.PNG)
+
+**For the following Collect Earth Online step, we need the sample points CSV that was exported to Google Drive** 
 
 #### Step 1b. Collect Reference Polygons in CEO
 
-Refer to the WWF CEO Data Collection document for instructions
+We will now use the sample point CSV data exported from Step 1a in the creation of a reference data interpretation project in Collect Earth Online.
 
-Steps would be to load the CSV file of the sample points as the plots in a CEO interpretation project, setup all other survey settings, do the data collection, export the CSV and import the CSV back into Google Earth Engine
+Create New Data Collection Project:
+1. Download the sample points CSV from Google Drive
+2. Go to https://collect.earth and sign in
+3. Click the WWF Institution
+4. Create a new project
+5. Make your data collection configuration settings to your liking
+6. On the Sample Plot page of the survey editor wizard, upload your CSV file as the plots.
+
+Collect Land Cover Reference Polygons in CEO:
+
+*Refer to the WWF CEO Data Collection document for further instructions and best practices*
+
+Upload CEO-derived Reference Polygons to GEE:
+1. Export the completed survey data out of Collect Earth Online as a CSV. 
+2. In the GEE Code Editor (code.earthengine.google.com), in the Assets tab at the top-left, click New and select CSV file (.csv) under Table Upload.
+3. Select the source file, and name the new GEE asset, ensuring it will be uploaded into your intended GEE Asset folder.
+
+GEE Asset Display:
+
+![dummyRefPolys](docs/imgs/dummyRefPolys.PNG)
 
 ### Step 2. Create Sentinel-2 Input Stack
 
-Now that we have the reference polygon data with Land Cover labels, we need to composite the information from Sentinel-2 and other geospatial data sources that the land cover model will be using. This input band stack must be first exported to a GEE asset before we can extract its pixel information to our reference polygons.
+We need to composite information from Sentinel-2 and other geospatial data sources that the land cover model will be using to train and predict on land cover. To be most memory-efficient, we must export a given Sentinel-2 Input Stack to a GEE asset before using it in either the training data generation or model prediction steps. You can create S2 input stack for any year of interest to any AOI polygon or set of polygons. 
+
+I interpreted my Land Cover Reference Polygons for the year 2022 in Collect Earth Online, and I want to predict a 2022 land cover map, so I will create a 2022 Sentinel-2 input stack composite using the `01sentinel2_sr` tool. Since my reference polygons in this demo all fall within my desired project AOI, I can provide the project AOI file path to the -a/--aoi flag to create a wall-to-wall S2 input stack. That way I can use the input stack to create 2022 training data from the polygons and to predict a 2022 Land Cover Map*. If I wanted to create training data from 2021 to train the model and predict 2022 land cover, I would need to run `01sentinel2_sr` tool twice - once for 2021 and once for 2022. 
 
 CLI Input:
 ```
-
+01composite_s2 -a projects/wwf-sig/assets/kaza-lc/aoi/testBingaPoly -y 2022 -o projects/wwf-sig/assets/kaza-lc/input_stacks/S2_2022_testBingaPoly
 ```
 
 CLI Output:
 
+![01composite_s2_CLI](docs/imgs/01composite_s2_CLI.PNG)
 
+**If my reference polygons overlap multiple project AOIs or fall outside of them (i.e. WWF's Zambia Field Data), then compositing S2 data with wall-to-wall coverage of the the polygon dataset's bounding box (the default behavior) makes no sense; we won't use any of the composited data that is outside the polygons and outside the AOIs. It is more compute-efficient to composite S2 data just within the polygon footprints and use that data to extract training information within those footprints. In that instance, you would provide the reference polygons Asset path to the -a/--aoi flag and provide the -p/--polygons flag in this tool to run the compositing that way instead. In this scenario, you would need to run the `01composite_s2` tool twice - once to provide input to the training data creation and again to provide input for the land cover prediction.* 
 
 GEE Task Pane:
 
+![01composite_gee_task](docs/imgs/01composite_gee_task.PNG)
 
+GEE Asset Display (visualization: red, green, and blue 50th percentile bands):
 
-NOTE: To continue the Research & Development process, all spectral bands and time series features are controlled by the user in the ![`src/utils/model_inputs.py`](src/utils/model_inputs.py) file in this repository. 
+![result_of_01composite_s2](docs/imgs/result_of_01composite_s2.PNG)
+
+__A Note for Continued Research & Development__
+
+All spectral bands and time series features are controlled by the user in the [`src/utils/model_inputs.py`](src/utils/model_inputs.py) file. 
+
+*Ensure that at the time of running all script tools, the settings in model_inputs.py were the same, otherwise you will get errors at the model training and/or prediction stage due to inconsistent list of inputs.* 
 
 ![model_inputs](docs/imgs/model_inputs.PNG)
 
@@ -82,44 +117,106 @@ Currently `addJRCWater` and `addTasselCap` are set to `False`. These covariates 
 
 [TasselCap paper]()
 
-The script reports that it is exporting a new dataset to the Earth Engine project. You can monitor submitted Earth Engine tasks in the [code editor](https://code.earthengine.google.com/) and clicking on Tasks tab in top-right
+### Step 3. Extract Training and Testing Point Information from Reference Polygons
 
-Once the export task has completed, confirm that the new dataset exists. In the [code editor](https://code.earthengine.google.com/), go to Assets tab on top-left and navigate to the `wwf-sig` cloud project folder. Find the dataset at the path that was reported in the previous script.
+Now that I have a Sentine-2 Input Stack composited and exported to a GEE Asset, I can use it in conjunction with my reference polygon dataset to extract a stratified random sample of training and test points that contain all the necessary model predictors and the Land Cover label. I provide my reference polygon asset, my S2 input image, and set my stratified sampling configuration. Here I'm sampling between 500 and 1000 points per land cover class.  
 
-![input_stack_exists_in_folder](https://user-images.githubusercontent.com/51868526/185693779-cf06d1d2-2a72-41d6-a8c8-1f8847118363.PNG)
+CLI Input:
+```
+02train_test -rp projects/wwf-sig/assets/kaza-lc/reference_data/BingaDummyReferencePolys -im projects/wwf-sig/assets/kaza-lc/input_stacks/S2_2022_testBingaPoly --class_values 1 2 3 4 5 6 7 8 --class_points 500 500 1000 750 750 750 500 500
+```
 
-### Generate Train and Test Data
+CLI Output:
 
-### Create Land Cover Primitives
+![02train_test_CLI](docs/imgs/02train_test_CLI.PNG)
 
-![Rfprims_CLIoutput](docs/imgs/03RFprimitives_CLI.PNG)
+GEE Task:
 
-Once the script completes, check several things:
-1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
-![RFprims_tasklist](https://user-images.githubusercontent.com/51868526/185696700-f3ce7aed-45b8-4fc5-bb84-0141846d0f21.PNG)
-2. Go into your local `kaza-lc` folder on your computer, check that a new folder named at the reported location has been created. In the example above the folder was named `C:\kaza-lc\metrics\Primitives_BingaTestPoly_2020`.
-3. Investigate the metric files located within. 
+![02train_test_gee_task](docs/imgs/02train_test_gee_task.PNG)
 
-![metricsFolder_inside](docs/imgs/metrics_folder.PNG)
+GEE Asset Display:
 
-There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
+![result_of_02train_test.PNG](docs/imgs/result_of_02train_test.PNG)
 
+### Step 4. Create Land Cover Primitives
 
-### Assemble Land Cover Map
+I have training data for a model and I have the input stack that I want to have the model predict on, so I am ready to run `RFprimitives` tool. I provide the input stack that the model will be predicting on, then the training point dataset to train the model with, and finally an output GEE asset path. 
+
+This tool generates probability Random Forest models for every land cover class in the land cover stratification. We call each of these land cover probability outputs 'Primitives'. When inspecting the output in the Code Editor, you can view the pixel as a histogram of probabilities for each Class. In the next step we assemble these primitives into a final Land Cover image.
+
+Note this tool also exports one out of bag (OOB) error .txt file and one varImportance .csv file per primitive. The oobError .txt files contain the Out-of-Bag Error estimate for that primitive's Random Forest model. The varImportance .csv files report out the relative importance of each of the top 20 most important input features (covariates). Those files are saved locally to a metrics folder in your current working directory. 
+
+__A Note for Continued Research & Development__
+
+These two metrics can aid in assessing model improvement efforts through feature engineering. After changing the input features (in the [model_inputs.py](src/utils/model_inputs.py) file), we would want to see lower OOB errors and your new input features showing up in the variable importance CSVs.
+
+CLI Input:
+```
+03RFprimitives -i projects/wwf-sig/assets/kaza-lc/input_stacks/S2_2022_testBingaPoly -t projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferencePolys_S2_2022_testBingaPoly_train_pts -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_S2_2022_testBingaPoly
+```
+
+CLI Output:
+
+![03RFprimitives_CLI](docs/imgs/03RFprimitives_CLI.PNG)
+
+Metrics Outputs:
+
+![03RFprimitives_metrics_folder](docs/imgs/03RFprimitives_metrics_folder.PNG)
+
+GEE Task:
+
+![03RFprimitives_gee_task](docs/imgs/03RFprimitives_gee_task.PNG)
+
+GEE Asset Display:
+
+![03RFprimitives_asset](docs/imgs/03RFprimitives_asset.PNG)
+
+### Step 5. Assemble Land Cover Map
+
+Now that we have generated our Primitives for our Land Cover typology, we want to assemble the primitives into a categorical Land Cover image. In the current methodology, the assemblage rule(s) are simple: for each pixel, the final Land Cover category is that primitive with the highest probability value. Let's run the `04generate_LC` tool now to do this. We provide the input primitives ImageCollection and an output GEE asset path.
+
+CLI Input:
+```
+04generate_LC -i projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_S2_2022_testBingaPoly -o projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_S2_2022_testBingaPoly
+```
+CLI Output:
 
 ![04generate_LC_CLIoutputs](docs/imgs/04_generateLC_CLI.PNG)
 
-Like you've done previously, check that the export task has been submitted in the [code editor](https://code.earthengine.google.com/), and when the task completes, check that the new output file exists in the Assets tab. 
+GEE Task:
+
+![04generate_LC_gee_task](docs/imgs/04_generateLC_gee_task.PNG)
+
+GEE Asset Display:
+
+![04generate_LC_asset](docs/imgs/04generate_LC_asset.PNG)
+
 
 # Inspecting Outputs
 In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
-In the [code editor](https://code.earthengine.google.com/), in the Scripts tab top-left, find the code repository named 'users/kwoodward/inspectingLCOutputs' and open it. Edit it as necessary to display the land cover products you would like to look at and click Run.
-![inspectingLCOutputs](https://user-images.githubusercontent.com/51868526/185697784-415a4367-f52b-48d1-8647-cf6fad81644f.PNG)
-![insepctingLCoutputs](https://user-images.githubusercontent.com/51868526/185688973-483f3d81-df16-4613-93bf-7a89fe839b42.PNG)
+In the [code editor](https://code.earthengine.google.com/), in a new script, copy this code block in to the code pane:
 
-You can zoom in, and change the transparency of layers in the Layers widget in the top-right of the Map window.
+```javascript
+var landcover = ee.Image("path/to/landcover/image")
+var lc_pal = [
+    "#5C5B5B", // bare - grey
+    "#E74029", // built - red
+    "#5E3A35", // crop - brown
+    "#176408", // forest - dark green
+    "#FAF9C4", // grass - yellow
+    "#31E10E", // shrub - light green
+    "#191BDE", // water - dark blue 
+    "#19DDDE"]; // wetland - light blue
+    
+var lc_vis = {min:1,max:8,palette:lc_pal};
+Map.addLayer(landcover,lc_vis,'Land Cover')
+```
 
-### Area Estimation and Accuracy 
+On the first line, replace the string asset path to your actual Land Cover ee.Image path. 
+
+You can zoom in, and change the transparency of layers in the Layers widget in the top-right of the Map window. Feel free to use any other hex string color code to change the class colors. 
+
+### Step 6. Area Estimation and Accuracy 
 
 **Accuracy Assessment and Area Estimation using [AREA2](https://area2.readthedocs.io/en/latest/overview.html)**
 

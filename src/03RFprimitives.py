@@ -35,7 +35,7 @@ def main():
         "--output",
         type=str,
         required=False,
-        help="The full asset path for export. Defaults to: 'projects/wwf-sig/assets/kaza-lc/output_landcover/S2_[year]_Primitives_[aoi]' "
+        help="The full asset path for export. Defaults to: 'projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_[input_img_basename]' "
     )
 
     parser.add_argument(
