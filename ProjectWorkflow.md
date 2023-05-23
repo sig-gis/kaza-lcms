@@ -1,11 +1,5 @@
 # Project Workflow
 
-Probably will remove these links and visualizing LC outputs will paste a JS code block of a Code Link in this documentation.
-
-**click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC**
-
-**click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing**
-
 We execute these steps in order create a yearly land cover product for a given year and region in KAZA 
 
 1. Create Land Cover Reference Polygons using GEE and Collect Earth Online
@@ -15,6 +9,8 @@ We execute these steps in order create a yearly land cover product for a given y
 5. Assemble Land Cover Map
 6. Area Estimation and Accuracy 
 
+For tool documentation, see the [REAMDE](README.md)
+
 ## Detailed Example
 
 Below is a full run-through of the process, with CLI usage examples, screenshots, and guidance using a small test area within the Binga community AOI.
@@ -23,9 +19,9 @@ Below is a full run-through of the process, with CLI usage examples, screenshots
 
 #### Step 1a. Export Stratified Random Sample Points from GEE
 
-In order to create a independently-interpreted reference polygon dataset for model training and accuracy assessment, we need to first export some random sample point locations per land cover class to guide our survey in Collect Earth Online. 
+In order to create an independently-derived reference polygon dataset for land cover modeling, we need to first export a stratified random sample dataset, using a pre-existing and trusted Land Cover map. This way we can guide the reference data interpretion process so that enough samples are derived per land cover class. 
 
-Below is a Land Cover image for our area already existing in our GEE Assets at this file path: 'projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020'.
+Below is a Land Cover image for our area already existing in our GEE Assets at this file path: `projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020`.
 
 ![intial_lc](docs/imgs/initial_landcover.PNG)
 
@@ -70,7 +66,7 @@ Collect Land Cover Reference Polygons in CEO:
 Upload CEO-derived Reference Polygons to GEE:
 1. Export the completed survey data out of Collect Earth Online as a CSV. 
 2. In the GEE Code Editor (code.earthengine.google.com), in the Assets tab at the top-left, click New and select CSV file (.csv) under Table Upload.
-3. Select the source file, and name the new GEE asset, ensuring it will be uploaded into your intended GEE Asset folder.
+3. Select the source file, and edit the GEE asset path.
 
 GEE Asset Display:
 
@@ -80,7 +76,9 @@ GEE Asset Display:
 
 We need to composite information from Sentinel-2 and other geospatial data sources that the land cover model will be using to train and predict on land cover. To be most memory-efficient, we must export a given Sentinel-2 Input Stack to a GEE asset before using it in either the training data generation or model prediction steps. You can create S2 input stack for any year of interest to any AOI polygon or set of polygons. 
 
-I interpreted my Land Cover Reference Polygons for the year 2022 in Collect Earth Online, and I want to predict a 2022 land cover map, so I will create a 2022 Sentinel-2 input stack composite using the `01sentinel2_sr` tool. Since my reference polygons in this demo all fall within my desired project AOI, I can provide the project AOI file path to the -a/--aoi flag to create a wall-to-wall S2 input stack. That way I can use the input stack to create 2022 training data from the polygons and to predict a 2022 Land Cover Map*. If I wanted to create training data from 2021 to train the model and predict 2022 land cover, I would need to run `01sentinel2_sr` tool twice - once for 2021 and once for 2022. 
+I interpreted my Land Cover Reference Polygons for the year 2022 in Collect Earth Online, and I want to predict a 2022 land cover map, so I will create a 2022 Sentinel-2 input stack composite using the `01sentinel2_sr` tool. Since my reference polygons in this demo all fall within my desired project AOI and my training data and prediction year is the same, I can run this tool once for my project AOI, and use the result of that for both the training data creation and model prediction steps*. If I wanted to create training data from 2021 to train the model and predict 2022 land cover, I would need to run `01sentinel2_sr` tool twice - once for 2021 training data and once for 2022 prediction. 
+
+* Use the `01composite_s2` tool, specifying an AOI GEE asset path, the year to composite data for, and an output GEE asset path
 
 CLI Input:
 ```
@@ -105,17 +103,17 @@ __A Note for Continued Research & Development__
 
 All spectral bands and time series features are controlled by the user in the [`src/utils/model_inputs.py`](src/utils/model_inputs.py) file. 
 
-*Ensure that at the time of running all script tools, the settings in model_inputs.py were the same, otherwise you will get errors at the model training and/or prediction stage due to inconsistent list of inputs.* 
-
 ![model_inputs](docs/imgs/model_inputs.PNG)
 
 The settings in this file currently reflect those model covariates detailed in the methodology report, but we fully expect for WWF to begin experimenting with feature engineering for model performance improvements. Computing harmonic trend coefficients on user-controlled spectral bands and indices is also now supported. Set `addHarmonics` to True to use them. In `harmonicsOptions`, the user specifies which band/spectral index and Day of Year range to compute the harmonic trend coefficients from.
 
-Currently `addJRCWater` and `addTasselCap` are set to `False`. These covariates were previously not coded into the toolset. It is highly likely that they will be informative model covariates for a variety of land cover classes. For more information on the science behind these covariates, see these papers:
+Currently `addJRCWater` and `addTasselCap` are set to `False`. These covariates were previously not coded into the toolset. It is highly likely that they will be informative model covariates for a variety of land cover classes. For more information on the science behind these covariates, see:
 
-[JRC paper]()
+[JRC GEE Dataset (with link to paper)](https://developers.google.com/earth-engine/datasets/catalog/JRC_GSW1_4_GlobalSurfaceWater)
 
-[TasselCap paper]()
+[Tasseled Cap paper](https://doi.org/10.1109/JSTARS.2019.2938388)
+
+*Ensure that at the time of running all script tools, the settings in model_inputs.py were the same, otherwise you will get errors at the model training and/or prediction stage due to inconsistent list of inputs.* 
 
 ### Step 3. Extract Training and Testing Point Information from Reference Polygons
 
@@ -192,7 +190,8 @@ GEE Asset Display:
 ![04generate_LC_asset](docs/imgs/04generate_LC_asset.PNG)
 
 
-# Inspecting Outputs
+**Inspecting Outputs**
+
 In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
 In the [code editor](https://code.earthengine.google.com/), in a new script, copy this code block in to the code pane:
 
