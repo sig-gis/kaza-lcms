@@ -4,7 +4,7 @@ We execute these steps in order create a yearly land cover product for a given y
 
 1. Create Land Cover Reference Polygons using GEE and Collect Earth Online
 2. Create Sentinel-2 Input Band Stack
-3. Extract Training and Testing Point information from the Sentinel-2 Stack inside Reference Polygons
+3. Extract Training and Testing Data from Reference Polygons
 4. Create Land Cover Primitives
 5. Assemble Land Cover Map
 6. Area Estimation and Accuracy 
@@ -25,7 +25,7 @@ Below is a Land Cover image for our area already existing in our GEE Assets at t
 
 ![intial_lc](docs/imgs/initial_landcover.PNG)
 
-* Run the 00sample_pts script, providing a reference land cover image, its land cover band name, and your desired sample stratification options. By default the tool will export the point dataset to Google Drive a CSV and as a GEE FeatureCollection Asset. 
+* Run the 00sample_pts script, providing a reference land cover image, its land cover band name, and your desired sample stratification options. By default the tool will export the point dataset to Google Drive as a CSV and to GEE as a FeatureCollection Asset, but you can specify either the -td/--to_drive or -ta/--to_asset flag to specify only one of the export formats. 
 
 CLI Input:
 
@@ -45,8 +45,6 @@ GEE Asset Display:
 
 ![result_of_00sample_pts](docs/imgs/result_of_00sample_pts.PNG)
 
-**For the following Collect Earth Online step, we need the sample points CSV that was exported to Google Drive** 
-
 #### Step 1b. Collect Reference Polygons in CEO
 
 We will now use the sample point CSV data exported from Step 1a in the creation of a reference data interpretation project in Collect Earth Online.
@@ -56,7 +54,7 @@ Create New Data Collection Project:
 2. Go to https://collect.earth and sign in
 3. Click the WWF Institution
 4. Create a new project
-5. Make your data collection configuration settings to your liking
+5. Make your data collection configuration settings to your liking (i.e. set up GeoDash widgets, add certain imagery sources for interpretation)
 6. On the Sample Plot page of the survey editor wizard, upload your CSV file as the plots.
 
 Collect Land Cover Reference Polygons in CEO:
@@ -117,9 +115,9 @@ Currently `addJRCWater` and `addTasselCap` are set to `False`. These covariates 
 
 ### Step 3. Extract Training and Testing Data from Reference Polygons
 
-Now that I have a Sentine-2 Input Stack composited and exported to a GEE Asset, I can use it in conjunction with my reference polygon dataset to extract a stratified random sample of training and test points that contain all the necessary model predictors and the Land Cover label. I provide my reference polygon asset, my S2 input image, and set my stratified sampling configuration. Here I'm sampling between 500 and 1000 points per land cover class.  
+Now that I have a Sentinel-2 Input Stack composited and exported to a GEE Asset, I can use it in conjunction with my reference polygon dataset to extract a stratified random sample of training and test points that contain all the necessary model predictors and the Land Cover label.   
 
-* Run the `02train_test` tool, providing the reference polygon asset path, the input stack image path, your output asset path basename (the tool adds '_train_pts' and '_test_pts' suffixes to the output file path provided), and specifying your stratified sampling configuration.
+* Run the `02train_test` tool, providing the reference polygon asset path, the input stack image path, your output asset path basename (the tool adds '_train_pts' and '_test_pts' suffixes to the output file path provided), and specifying your stratified sampling configuration. Here I'm saying want to sample all Land Cover labels 1-8 and I want to sample a specific number of points per class. For example, I am sampling 500 points for class 1, 500 for class 2, 1000 for class 3, etc.
 
 CLI Input:
 ```
@@ -226,7 +224,9 @@ You can zoom in, and change the transparency of layers in the Layers widget in t
 **Accuracy Assessment and Area Estimation using [AREA2](https://area2.readthedocs.io/en/latest/overview.html)**
 
 Once you have a final Land Cover ee.Image in your Earth Engine folder, you are ready to assess its accuracy and estimate area per class from that image.
+
 __click this link to add the AREA2 GEE script repository to your Reader repos: [https://code.earthengine.google.com/?accept_repo=projects/AREA2/public](https://code.earthengine.google.com/?accept_repo=projects/AREA2/public)__
+
 We will be using the `Stratified Estimation` script tool. 
 
 ![StratifiedEstimation](docs/imgs/AREA2_stratifiedEstimation.PNG)

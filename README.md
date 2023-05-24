@@ -118,7 +118,7 @@ example:
 00sample_pts -im input/path/to/image -band LANDCOVER -o output/path --n_points 100 --to_drive
 ```
 
-## **01sentinel2_sr**
+## **01composite_s2**
 
 Creates a Sentinel-2 Composite for an AOI or reference polygons. 
 
@@ -141,8 +141,6 @@ example:
 ```
 02train_test -rp path/to/reference_polygon_fc -im path/to/input/stack -o unique/output/path --class_values 1 2 3 4 5 6 7 8 --class_points 10 10 10 10 10 10 10
 ```
-
-
 
 ## **03RFprimitives**
 
