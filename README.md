@@ -21,7 +21,7 @@ conda create -n gee
 ```
 conda activate gee
 ```
-* Leave this environment activated, we will install necessary packages from the `kaza-lc` source code in the next section. 
+* Leave this environment activated, we will install necessary packages from the `kaza-lcms` source code in the next section. 
 
 ## Git Setup
 1. Download the Git installer for your OS from the Git downloads [page](https://git-scm.com/downloads). Run the installer following all recommended settings
@@ -35,7 +35,7 @@ git --version
 3. Clone the repository to a local folder 
 
 ```
-git clone https://github.com/kyle-woodward/kaza-lcms.git
+git clone https://github.com/sig-gis/kaza-lcms.git
 ```
 
 ![kaza_readme_git_clone](docs/imgs/git_clone.PNG)
