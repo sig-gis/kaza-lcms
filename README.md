@@ -32,20 +32,20 @@ git --version
 
 ![kaza_readme_git_version](docs/imgs/git_version.PNG)
 
-3. Clone the kaza repository to a local folder 
+3. Clone the repository to a local folder 
 
 ```
-git clone https://github.com/kyle-woodward/kaza-lc.git
+git clone https://github.com/kyle-woodward/kaza-lcms.git
 ```
 
 ![kaza_readme_git_clone](docs/imgs/git_clone.PNG)
 
-4. `cd` into your new kaza-lc folder and `ls`(linux/MacOS) or `dir`(Windows) to see its contents
+4. `cd` into your new kaza-lcms folder and `ls`(linux/MacOS) or `dir`(Windows) to see its contents
 
 ![kaza_readme_cdToKazalc](docs/imgs/cd_to_kazalc.PNG)
 
 ## Install Source Code and Dependencies
-1. While still in your terminal, and in the `kaza-lc` parent directory, install the `kaza-lc` package from the source code with pip:
+1. While still in your terminal, and in the `kaza-lcms` parent directory, install the `kaza-lcms` package from the source code with pip:
 
 ```
 pip install -e .
@@ -53,7 +53,7 @@ pip install -e .
 
 ![kaza_readme_pip_install](docs/imgs/pip_install.PNG)
 
-pip will begin to install the `kaza-lc` source code and its required dependencies. We install the package in developer mode (`-e` flag) so that changes made to files will be reflected in the code compiled at run-time. If the python package dependencies are already installed in your conda `gee` virtual environment, your output will show 'requirement already satisfied' next to each package already installed. 
+pip will begin to install the `kaza-lcms` source code and its required dependencies. We install the package in developer mode (`-e` flag) so that changes made to files will be reflected in the code compiled at run-time. If the python package dependencies are already installed in your conda `gee` virtual environment, your output will show 'requirement already satisfied' next to each package already installed. 
 
 ## Earth Engine Setup
 Earth Engine requires you to authenticate your account credentials to access the Earth Engine API and your chosen Cloud Project. We do this with the `gcloud` python utility
@@ -87,144 +87,82 @@ earthengine authenticate
 Test that earthengine is setup and authenticated by checking the folder contents within the `wwf-sig` cloud project. 
 * In your shell, run:
 ```
+earthengine set project wwf-sig
 earthengine ls projects/wwf-sig/assets/kaza-lc
 ```
 
-![kaza_earthenginels](https://user-images.githubusercontent.com/51868526/184402268-5876a8eb-7e1d-4d1f-aef6-658c6e20fe8c.JPG)
+![kaza_earthenginels](docs/imgs/earthengine_ls.PNG)
 
 If you do not get an error and it returns a list of folders and assets similar to this then you are good to go! :tada:
 
-# Project Workflow
-Execute these steps in order create a yearly land cover product for a given year and region in KAZA 
-*(tool in parentheses)*
+# Tool Documentation
 
-1. Generate stratified random reference samples for interpretation in Collect Earth Online (00sample_pts)
-2. Extract train and test data points from annual Sentinel-2 SR composites (01train_test)
-3. Generate input data stack from chosen sensor used by the model (02composite_s2)
-4. Create land cover primitives from Random Forest models (03RFprimitives)
-5. Construct categorical land cover map from the land cover primitives (04generate_LC)
-6. Conduct accuracy assessment and estimate area (AREA2: Stratified Estimator tool)
-
-**click this link to accept the kazaLC Javascript repo: https://code.earthengine.google.com/?accept_repo=users/kwoodward/kazaLC**
-
-**click this link to gain access to the WWF_KAZA Google Drive folder: https://drive.google.com/drive/folders/1Qd3Xo9ISQjQV15xxwqfgE-Dr1JFJ49M4?usp=sharing**
-
-## About the python scripts
-Each Command Line Interface (CLI) script will be run on the command-line. The user must provide values for each required command-line argument to control the analysis.
-You can first run any script, only declaring the `-h` flag. This will bring up the help dialog with a usage example and a description of required command-line arguments. 
-Before you run any scripts, ensure you've activated your anaconda environment with your required dependencies and have changed into the `kaza-lc` directory that contains the scripts.
+Before you run any scripts, ensure you've activated your anaconda environment with your required dependencies and have changed into the `kaza-lcms` directory that contains the scripts.
 example:
 ```
 conda activate gee
-cd C:\kaza-lc
+cd C:\kaza-lcms
 ```
-# Generate Reference Samples
-**Python Script: 01sample_pts.py**
 
-This script generates sample points to be used as training and testing for your given AOI. Currently you provide the year for which the points are to be used and it exports points for all AOIs as Earth Engine Feature Collection and as a CSV file to a Google Drive folder. 
-Run the script with python, choosing values for its required arguments
+Each Command Line Interface (CLI) script tool can be run in your command-line terminal of choice. The user must provide values for each required command-line argument to control the analysis.
+You can first run any script, only declaring the `-h` flag. This will bring up the help dialog with a usage example and a description of required command-line arguments. 
+
+## **00sample_pts**
+
+Generate Random Sample Points From an ee.Image, Formatted for Collect Earth Online
+
+The points are pre-formatted for use in Collect Earth Online to generate photo-interpreted reference data. You can choose to export the points to Google Drive, to GEE Asset or both. 
+
 example:
 ```
-python 01sample_pts.py -y 2022
+00sample_pts -im input/path/to/image -band LANDCOVER -o output/path --n_points 100 --to_drive
 ```
 
-![01sample_pts_output](docs/imgs/01sample_pts_CLI.PNG)
+## **01composite_s2**
 
-# Generate Input Stack
-**Python Script: 02sentinel2_sr.py**
+Creates a Sentinel-2 Composite for an AOI or reference polygons. 
 
-This script creates a data stack of input covariates to feed into the land cover models. It executes this process for one AOI and year that the user specifies.
-Note: `-o/--output` argument is optional. You can provide your own asset path, otherwise the script will create a default standardized file path. 
-Note: specifying the `--dry_run` argument allows you to run checks wihout actually executing the workflow.
-Run the script with python, choosing values for its required arguments
+The resulting band stack is needed for both extracting training data information and as input to a trained model's inference. Set the `-p` flag if your AOI is a set of reference polygons and not one contiguous AOI polygon. 
+
 example:
 ```
-python 02sentinel2_sr.py -a Zambezi -y 2022
+01composite_s2 -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks
 ```
 
-![02sentinel_outputs](docs/imgs/02sentinel2_sr_CLI.PNG)
+**NOTE: The user can control which spectral indices and time series features to generate in this tool by modifying this file in the repository : [`~/src/utils/model_inputs.py`](/src/utils/model_inputs.py). See [ProjectWorkflow.md](/ProjectWorkflow.md) for details.**
 
-The script reports that it is exporting a new dataset to the Earth Engine project. You can monitor submitted Earth Engine tasks in the [code editor](https://code.earthengine.google.com/) and clicking on Tasks tab in top-right
+## **02train_test**
 
-![script2_EEtaskRunning](docs/imgs/script2_export_task.PNG)
+Extract Train and Test Point Data from an Input Image within Reference Polygon Areas.
 
-Once the export task has completed, confirm that the new dataset exists. In the [code editor](https://code.earthengine.google.com/), go to Assets tab on top-left and navigate to the `wwf-sig` cloud project folder. Find the dataset at the path that was reported in the previous script.
+Generates stratified random samples from reference polygons, splitting the sample points into train and test points if desired. The image bands from the provided image are extracted to every point. 
 
-![input_stack_exists_in_folder](https://user-images.githubusercontent.com/51868526/185693779-cf06d1d2-2a72-41d6-a8c8-1f8847118363.PNG)
-
-# Train and Apply Random Forest Primitive Models
-**Python Script: 03RFprimitives.py**
-
-This script trains probability Random Forest models for each land cover class in your typology as provided by the numeric 'LANDCOVER' property in the provided reference data. It then exports these binary probability images one land cover at a time into a land cover 'Primitives' image collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lc` folder on your computer.
-Note: `-o/--output` argument is again optional. If it is not provided, a default output path will be chosen.
-Note: specifying the `--dry_run` argument allows you to run checks wihout actually executing the workflow.
-Run the script with python, choosing values for its required arguments
 example:
 ```
-python 03RFprimitives.py -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTestPoly_stack_2020 -r projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData  -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_2020
+02train_test -rp path/to/reference_polygon_fc -im path/to/input/stack -o unique/output/path --class_values 1 2 3 4 5 6 7 8 --class_points 10 10 10 10 10 10 10
 ```
 
-![Rfprims_CLIoutput](docs/imgs/03RFprimitives_CLI.PNG)
+## **03RFprimitives**
 
-Once the script completes, check several things:
-1. Check that the exports have been submitted by looking at the Tasks tab in the [code editor](https://code.earthengine.google.com/)
-![RFprims_tasklist](https://user-images.githubusercontent.com/51868526/185696700-f3ce7aed-45b8-4fc5-bb84-0141846d0f21.PNG)
-2. Go into your local `kaza-lc` folder on your computer, check that a new folder named at the reported location has been created. In the example above the folder was named `C:\kaza-lc\metrics\Primitives_BingaTestPoly_2020`.
-3. Investigate the metric files located within. 
+Create Land Cover Primitives For All Classes in Provided Training Data. 
 
-![metricsFolder_inside](docs/imgs/metrics_folder.PNG)
+This script trains probability Random Forest models for each land cover class in your typology as provided by the numeric 'LANDCOVER' property in the provided reference data. It then exports these binary probability images one land cover at a time into a land cover 'Primitives' image collection. While doing so, it also reports out some model performance metrics saved to a new folder created in your *local* `kaza-lcms/metrics` folder on your computer.
 
-There should be one oobError .txt file and one varImportance .csv file per land cover. The oobError .txt files contain the Out-of-Bag Error estimate for that land cover's Random Forest model. The varImportance .csv files report out the relative importance of each input feature (covariate) in the input data stack.
-
-# Generate Final Land Cover Image
-**Python Script: 04generate_LC.py**
-
-This script takes the RF primitives collection generated from the previous script and creates a single-band land cover image from them.
-Note: `-o/--output` argument is optional.
-Run the script with python, choosing values for its required arguments
 example:
 ```
-python 04generate_LC.py -i projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_stack_2020 -o 
+03RFprimitives -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTestPoly_stack_2020 -r projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData  -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_2020
+```
+
+## **04generate_LC**
+
+Generate Single Land Cover Image From Land Cover Primitives Image Collection
+
+This script takes the RF primitives collection generated from the previous script and creates a single-band land cover image from them, taking the highest-probability Primitive at each pixel to assign the Land Cover class.
+
+example:
+```
+04generate_LC -i projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_stack_2020 -o 
 projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020
 ```
-![04generate_LC_CLIoutputs](docs/imgs/04_generateLC_CLI.PNG)
-
-Like you've done previously, check that the export task has been submitted in the [code editor](https://code.earthengine.google.com/), and when the task completes, check that the new output file exists in the Assets tab. 
-
-# Inspecting Outputs
-In addition to digging into the files in your metrics folders, you should also look at the output land cover image to gain insight into how the land cover models are performing
-In the [code editor](https://code.earthengine.google.com/), in the Scripts tab top-left, find the code repository named 'users/kwoodward/inspectingLCOutputs' and open it. Edit it as necessary to display the land cover products you would like to look at and click Run.
-![inspectingLCOutputs](https://user-images.githubusercontent.com/51868526/185697784-415a4367-f52b-48d1-8647-cf6fad81644f.PNG)
-![insepctingLCoutputs](https://user-images.githubusercontent.com/51868526/185688973-483f3d81-df16-4613-93bf-7a89fe839b42.PNG)
-
-You can zoom in, and change the transparency of layers in the Layers widget in the top-right of the Map window.
-
-# Accuracy Assessment and Area Estimation using [AREA2](https://area2.readthedocs.io/en/latest/overview.html)
-Once you have a final Land Cover ee.Image in your Earth Engine folder, you are ready to assess its accuracy and estimate area per class from that image.
-__click this link to add the AREA2 GEE script repository to your Reader repos: [https://code.earthengine.google.com/?accept_repo=projects/AREA2/public](https://code.earthengine.google.com/?accept_repo=projects/AREA2/public)__
-We will be using the `Stratified Estimation` script tool. 
-
-![StratifiedEstimation](docs/imgs/AREA2_stratifiedEstimation.PNG)
-
-* Open the script and click `Run`. A User Interface will be generated.
-
-![RunStratifiedEstimation](docs/imgs/stratifiedEstimationUIOpen.PNG)
-
-* In the first dialog box, we will provide the full GEE asset path to our Land Cover `ee.Image`.
-* We leave the second dialog box, 'Specify Band' as default 1
-* In the third dialog box, we must specify the no data value. It must be a number that is not being used in the 'LANDCOVER' typology. For example, if your LANDCOVER values are 1-8, a no data value 0 is appropriate.
-* In the fourth dialog box, we provide the full GEE asset path to our testing samples `ee.FeatureCollection`. In our workflow, this is generated in the 03RFprimitives.py by separating the input reference data into '_trainingPts' and '_testingPts'. You want to select the '_testingPts' `ee.FeatureCollection`
-* Click 'Load data', then another button 'Apply stratified estimator' will appear. Click that as well. 
-* Testing points that were misclassified in our land cover image are added to the map, and Accuracy and Area metrics are printed to the Console. 
-
-![mapview](docs/imgs/stratifiedEstimationFillOutDialog.PNG)
-
-![consoleview](docs/imgs/stratifiedEstimationConsole.PNG)
-
-* You can save or take a screenshot of the printed Accuracy and Area metrics. You can also retrieve the confusion/error matrices themselves as total counts or proportions by clicking the 'show error matrices' button in the UI. 
-
-*A good place to save these metrics is in the metrics subfolder generated during the RF Primitives analysis.*
-
-![showmatrices](docs/imgs/stratifiedEstimationErrorMatrices.PNG)
 
 

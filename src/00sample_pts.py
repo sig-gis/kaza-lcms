@@ -155,7 +155,7 @@ def main():
         asset_id_basename = f"{output_folder}/{os.path.basename(input_path)}_sample_pts"
     
     assert check_exists(input_path) == 0, f"Check input FeatureCollection exists: {input_path}"
-    assert check_exists(output_folder) == 0, f"Check output folder exsits: {output_folder}"
+    assert check_exists(output_folder) == 0, f"Check output folder exists: {output_folder}"
     
     # value checks if class_values and class_points args are both provided
     if ((class_values != None) and (class_points != None)):
@@ -190,9 +190,7 @@ def main():
         seed = np.random.randint(low=1,high=1e6)
         print(f"reshuffled new seed: {seed}")
     
-    print(n_points)
-    print(class_values)
-    print(class_points)
+    
     samples = sampling.strat_sample(img=img,
                                     class_band=class_band,
                                     region=bbox,

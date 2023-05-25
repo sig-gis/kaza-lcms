@@ -9,7 +9,7 @@ def main():
     ee.Initialize(project='wwf-sig')
     parser = argparse.ArgumentParser(
     description="Create Sentinel-2 Composite for an AOI or reference polygons",
-    usage = "python 02composite_s2.py -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
+    usage = "01composite_s2 -a Zambezi -y 2021 -o projects/wwf-sig/assets/kaza-lc-test/input_stacks"
     )
     
     parser.add_argument(
@@ -17,7 +17,7 @@ def main():
     "--aoi",
     type=str,
     required=True,
-    help="The full asset path to an aoi, or the base name of an exsiting asset located in 'projects/wwf-sig/assets/kaza-lc/aoi/' (i.e. Zambezi)"
+    help="The full asset path to an aoi or reference polygon dataset. If only file base name provided, file must exist in 'projects/wwf-sig/assets/kaza-lc/aoi/' (i.e. Zambezi)"
     )
     
     parser.add_argument(
@@ -79,7 +79,7 @@ def main():
     # # trying to get this to work for polygon geoms not one contiguous geometry
     # aoi_buffered = aoi.geometry().buffer(1000) 
     assert check_exists(aoi_path) == 0, f"Check aoi exists: {aoi_path}"
-    assert check_exists(outputbase) == 0, f"Check output folder exsits: {outputbase}"
+    assert check_exists(outputbase) == 0, f"Check output folder exists: {outputbase}"
     assert len(str(year)) == 4, "year should conform to YYYY format"
     
     if check_exists(asset_id):
