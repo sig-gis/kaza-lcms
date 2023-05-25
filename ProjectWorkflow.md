@@ -11,6 +11,9 @@ We execute these steps in order create a yearly land cover product for a given y
 
 For tool documentation, see the [REAMDE](README.md)
 
+For code demo videos see this [Drive Folder](https://drive.google.com/drive/folders/1gUYxjBzq7FpZcZ7VGoORb8E-Uqf79CSO?usp=sharing). 
+*You can ask for access from Victoria Stanley (victoria.stanley@wwf.de) or Helga Kuechly (helga.kuechly@wwf.de)*
+
 ## Detailed Example
 
 Below is a full run-through of the process, with CLI usage examples, screenshots, and guidance using a small test area within the Binga community AOI.
