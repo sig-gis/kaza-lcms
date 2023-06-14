@@ -150,7 +150,7 @@ This script trains probability Random Forest models for each land cover class in
 
 example:
 ```
-03RFprimitives -i projects/wwf-sig/assets/kaza-lc/input_stacks/BingaTestPoly_stack_2020 -r projects/wwf-sig/assets/kaza-lc/sample_pts/BingaDummyReferenceData  -o projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_2020
+03RFprimitives -i path/to/input/stack -t path/to/training/data -o unique/output/path
 ```
 
 ## **04generate_LC**
@@ -161,8 +161,7 @@ This script takes the RF primitives collection generated from the previous scrip
 
 example:
 ```
-04generate_LC -i projects/wwf-sig/assets/kaza-lc/output_landcover/Primitives_BingaTestPoly_stack_2020 -o 
-projects/wwf-sig/assets/kaza-lc/output_landcover/LandCover_BingaTestPoly_2020
+04generate_LC -i path/to/input/primitives/collection -o unique/output/path
 ```
 
 
