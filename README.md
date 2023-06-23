@@ -87,7 +87,7 @@ earthengine authenticate
 Test that earthengine is setup and authenticated by checking the folder contents within the `wwf-sig` cloud project. 
 * In your shell, run:
 ```
-earthengine set project wwf-sig
+earthengine set_project wwf-sig
 earthengine ls projects/wwf-sig/assets/kaza-lc
 ```
 
